@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gamestr Dashboard</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f7f7;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      h2 {
+        color: #333;
+      }
+
+      #dashboard {
+        width: 60%;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        background-color: #fff;
+        margin-top: 20px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .progress-container {
+        margin-bottom: 20px;
+      }
+
+      .progress-label {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .progress-bar {
+        width: 100%;
+        background-color: #e0e0e0;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 20px;
+        background-color: #4caf50;
+        border-radius: 5px;
+        transition: width 0.5s;
+      }
+
+      button {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin-top: 10px;
+        border-radius: 5px;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+
+      .level {
+        font-size: 1.2em;
+        margin-bottom: 10px;
+      }
+
+      #pieChartContainer {
+        width: 30%; /* Adjusted the width */
+        height: 250px; /* Added a height constraint */
+        margin-top: 30px;
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      #pieChart {
+        height: 200px; /* Adjusted the canvas height */
+      }
+    </style>
+    <!-- Include Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+
+  <body>
+    <h2>Gamestr Dashboard</h2>
+    <button onclick="sendData()">Start</button>
+    <div id="dashboard">
+      <div class="progress-container">
+        <div class="progress-label">Chores</div>
+        <div class="level" id="choresLevel">Level: 0</div>
+        <div class="progress-bar">
+          <div id="choresProgress" class="progress-fill"></div>
+        </div>
+        <div id="choresValue">0/50000</div>
+      </div>
+
+      <div class="progress-container">
+        <div class="progress-label">Work</div>
+        <div class="level" id="workLevel">Level: 0</div>
+        <div class="progress-bar">
+          <div id="workProgress" class="progress-fill"></div>
+        </div>
+        <div id="workValue">0/20000</div>
+      </div>
+    </div>
+    <div id="pieChartContainer">
+      <canvas id="pieChart"></canvas>
+    </div>
+
+    <script>
+      const choresProgressDiv = document.getElementById('choresProgress')
+      const workProgressDiv = document.getElementById('workProgress')
+      const choresValueDiv = document.getElementById('choresValue')
+      const workValueDiv = document.getElementById('workValue')
+      const choresLevelDiv = document.getElementById('choresLevel')
+      const workLevelDiv = document.getElementById('workLevel')
+
+      let choresLevel = 0
+      let workLevel = 0
+
+      const maxChores = 50000
+      const maxWork = 20000
+
+      const socket = new WebSocket('ws://localhost:4444/')
+
+      function sendData() {
+        const data =
+          '["REQ", "hyper", {"kinds":[33334], "authors": ["64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746"]}]'
+        socket.send(data)
+      }
+
+      socket.onmessage = function (event) {
+        let json = JSON.parse(event.data)
+        if (json && json[0] === 'EOSE') {
+          return
+        }
+        const content = JSON.parse(json[2].content)
+        updateProgress(content.chores, content.work)
+      }
+
+      function updateProgress(chores, work) {
+        if (chores >= maxChores) {
+          choresLevel++
+          chores = chores % maxChores
+          choresLevelDiv.textContent = `Level: ${choresLevel}`
+        }
+
+        if (work >= maxWork) {
+          workLevel++
+          work = work % maxWork
+          workLevelDiv.textContent = `Level: ${workLevel}`
+        }
+
+        const choresPercentage = (chores / maxChores) * 100
+        const workPercentage = (work / maxWork) * 100
+
+        choresProgressDiv.style.width = `${choresPercentage}%`
+        workProgressDiv.style.width = `${workPercentage}%`
+
+        choresValueDiv.textContent = `${chores}/${maxChores}`
+        workValueDiv.textContent = `${work}/${maxWork}`
+
+        // Update the pie chart with the new data
+        pieChart.data.datasets[0].data = [chores, work]
+        pieChart.update()
+      }
+
+      // Create a pie chart
+      const ctx = document.getElementById('pieChart').getContext('2d')
+      const pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Chores', 'Work'],
+          datasets: [
+            {
+              data: [0, 0],
+              backgroundColor: ['#4caf50', '#ff9800']
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false // This ensures the canvas height is respected
+        }
+      })
+    </script>
+  </body>
+</html>
