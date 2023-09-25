@@ -137,7 +137,9 @@
           createProgressElement(key, content[key], progressPercentage)
         })
 
-        pieChartData = keys.map(key => content[key])
+        pieChartData = keys.map(
+          key => content[key] + levels[key] * maxValues[key]
+        )
         pieChart.data.labels = keys
         pieChart.data.datasets[0].data = pieChartData
         pieChart.update()
