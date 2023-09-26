@@ -103,10 +103,12 @@
       const levels = {}
       let pieChartData = [0, 0]
       const socket = new WebSocket('ws://localhost:4444/')
+      const pubkey =
+        '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746'
+      const kind = 33334
 
       function sendData() {
-        const data =
-          '["REQ", "hyper", {"kinds":[33334], "authors": ["64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746"]}]'
+        const data = `["REQ", "hyper", {"kinds":[${kind}], "authors": ["${pubkey}"]}]`
         socket.send(data)
       }
 
@@ -138,7 +140,7 @@
         })
 
         pieChartData = keys.map(
-          key => content[key] + levels[key] * maxValues[key]
+          key => content[key] + (levels[key] - 1) * maxValues[key]
         )
         pieChart.data.labels = keys
         pieChart.data.datasets[0].data = pieChartData
