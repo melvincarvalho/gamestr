@@ -99,11 +99,18 @@
       class App extends Component {
         constructor() {
           super()
+
+          let relay =
+            new URLSearchParams(window.location.search).get('r') ||
+            'ws://localhost:4444/'
+
+          console.log(relay)
+
           this.state = {
             maxValues: { chores: 20000, work: 20000 },
             levels: {},
             pieChartData: [0, 0],
-            socket: new WebSocket('ws://localhost:4444/'),
+            socket: new WebSocket(relay),
             pubkey:
               '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746',
             kind: 33334,
