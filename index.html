@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gamestr Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -18,8 +19,24 @@
         color: #333;
       }
 
+      #pieChartContainer {
+        display: block; /* Add this line */
+        width: 100%; /* Increase width */
+        height: 400px;
+        margin: 30px auto; /* Center the container */
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      #pieChart {
+        width: 100%; /* Takes up full width of its container */
+        height: 100%; /* Takes up full height of its container */
+      }
+
       #dashboard {
-        width: 60%;
+        width: 100%;
         padding: 20px;
         border: 1px solid #e0e0e0;
         background-color: #fff;
@@ -72,127 +89,140 @@
         font-size: 1.2em;
         margin-bottom: 10px;
       }
-
-      #pieChartContainer {
-        width: 30%;
-        height: 250px;
-        margin-top: 30px;
-        background-color: #fff;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-      }
-
-      #pieChart {
-        height: 200px;
-      }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
-    <h2>Gamestr Dashboard</h2>
-    <button onclick="sendData()">Start</button>
-    <div id="dashboard"></div>
-    <div id="pieChartContainer">
-      <canvas id="pieChart"></canvas>
-    </div>
+    <div id="app"></div>
+    <script type="module">
+      import { html, render, Component } from './js/standalone.module.js'
 
-    <script>
-      const dashboardDiv = document.getElementById('dashboard')
-      const maxValues = { chores: 20000, work: 20000 }
-      const levels = {}
-      let pieChartData = [0, 0]
-      const socket = new WebSocket('ws://localhost:4444/')
-      const pubkey =
-        '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746'
-      const kind = 33334
-
-      function sendData() {
-        const data = `["REQ", "hyper", {"kinds":[${kind}], "authors": ["${pubkey}"]}]`
-        socket.send(data)
-      }
-
-      socket.onmessage = function (event) {
-        let json = JSON.parse(event.data)
-        if (json && json[0] === 'EOSE') {
-          return
+      class App extends Component {
+        constructor() {
+          super()
+          this.state = {
+            maxValues: { chores: 20000, work: 20000 },
+            levels: {},
+            pieChartData: [0, 0],
+            socket: new WebSocket('ws://localhost:4444/'),
+            pubkey:
+              '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746',
+            kind: 33334,
+            content: {}
+          }
         }
-        const content = JSON.parse(json[2].content)
-        updateDashboard(content)
-      }
 
-      function updateDashboard(content) {
-        dashboardDiv.innerHTML = ''
-        const keys = Object.keys(content)
-        keys.forEach(key => {
-          if (!levels[key]) levels[key] = 1
-          levels[key] = Math.floor(content[key] / maxValues[key]) + 1
-          content[key] = content[key] % maxValues[key]
-          const progressPercentage = (content[key] / maxValues[key]) * 100
-          console.log(
-            'Calculated percentage for',
-            key,
-            ':',
-            progressPercentage,
-            content[key]
-          )
-          createProgressElement(key, content[key], progressPercentage)
-        })
-
-        pieChartData = keys.map(
-          key => content[key] + (levels[key] - 1) * maxValues[key]
-        )
-        pieChart.data.labels = keys
-        pieChart.data.datasets[0].data = pieChartData
-        pieChart.update()
-      }
-
-      function createProgressElement(label, value, percentage) {
-        const container = document.createElement('div')
-        container.classList.add('progress-container')
-
-        const labelDiv = document.createElement('div')
-        labelDiv.classList.add('progress-label')
-        labelDiv.textContent = label
-        container.appendChild(labelDiv)
-
-        const levelDiv = document.createElement('div')
-        levelDiv.classList.add('level')
-        levelDiv.textContent = `Level: ${levels[label] || 0}`
-        container.appendChild(levelDiv)
-
-        const progressBar = document.createElement('div')
-        progressBar.classList.add('progress-bar')
-        const progressFill = document.createElement('div')
-        progressFill.classList.add('progress-fill')
-        progressFill.style.width = `${percentage}%`
-        progressBar.appendChild(progressFill)
-        container.appendChild(progressBar)
-
-        const valueDiv = document.createElement('div')
-        valueDiv.textContent = `${value}/${maxValues[label]}`
-        container.appendChild(valueDiv)
-
-        dashboardDiv.appendChild(container)
-      }
-
-      const ctx = document.getElementById('pieChart').getContext('2d')
-      const pieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: [],
-          datasets: [
-            {
-              data: pieChartData,
-              backgroundColor: ['#4caf50', '#ff9800']
+        componentDidMount() {
+          this.initializeChart()
+          this.state.socket.onmessage = event => {
+            let json = JSON.parse(event.data)
+            if (json && json[0] === 'EOSE') {
+              return
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false
+            const content = JSON.parse(json[2].content)
+            this.updateDashboard(content)
+          }
         }
-      })
+
+        sendData = () => {
+          const data = `["REQ", "hyper", {"kinds":[${this.state.kind}], "authors": ["${this.state.pubkey}"]}]`
+          this.state.socket.send(data)
+        }
+
+        // New function to initialize the chart
+        initializeChart() {
+          const ctx = document.getElementById('pieChart').getContext('2d')
+          this.state.chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: ['Chores', 'Work'],
+              datasets: [
+                {
+                  data: this.state.pieChartData,
+                  backgroundColor: ['#ff9999', '#66b3ff'],
+                  borderColor: ['black', 'black']
+                }
+              ]
+            },
+            options: {}
+          })
+        }
+
+        // New function to update the chart
+        updatePieChart() {
+          if (this.state.chart) {
+            this.state.chart.data.datasets[0].data = this.state.pieChartData
+            this.state.chart.update()
+          }
+        }
+
+        updateDashboard(content) {
+          let levels = { ...this.state.levels }
+          let pieChartData = []
+
+          Object.keys(content).forEach(key => {
+            if (!levels[key]) levels[key] = 1
+            levels[key] =
+              Math.floor(content[key] / this.state.maxValues[key]) + 1
+            content[key] = content[key] % this.state.maxValues[key]
+            pieChartData.push(
+              content[key] + (levels[key] - 1) * this.state.maxValues[key]
+            )
+          })
+          this.updatePieChart() // Update the chart here
+          this.setState({ content, levels, pieChartData })
+        }
+
+        drawPieChart() {
+          const ctx = document.getElementById('pieChart').getContext('2d')
+          new Chart(ctx, {
+            type: 'pie',
+            data: {
+              labels: ['Chores', 'Work'],
+              datasets: [
+                {
+                  data: this.state.pieChartData,
+                  backgroundColor: ['#ff9999', '#66b3ff'],
+                  borderColor: ['black', 'black']
+                }
+              ]
+            },
+            options: {}
+          })
+        }
+
+        render(props, state) {
+          return html`
+            <div>
+              <h2>Gamestr Dashboard</h2>
+              <button onClick=${() => this.sendData()}>Start</button>
+              <div id="dashboard">
+                ${Object.keys(state.content).map(
+                  key => html`
+                    <div class="progress-container">
+                      <div class="progress-label">${key}</div>
+                      <div class="level">Level: ${state.levels[key] || 0}</div>
+                      <div class="progress-bar">
+                        <div
+                          class="progress-fill"
+                          style="width: ${(state.content[key] /
+                            state.maxValues[key]) *
+                          100}%;"
+                        ></div>
+                      </div>
+                      <div>${state.content[key]}/${state.maxValues[key]}</div>
+                    </div>
+                  `
+                )}
+              </div>
+              <div id="pieChartContainer">
+                <canvas id="pieChart"></canvas>
+              </div>
+            </div>
+          `
+        }
+      }
+
+      render(html`<${App} />`, document.getElementById('app'))
     </script>
   </body>
 </html>
