@@ -175,8 +175,9 @@
               content[key] + (levels[key] - 1) * this.state.maxValues[key]
             )
           })
-          this.updatePieChart() // Update the chart here
-          this.setState({ content, levels, pieChartData })
+          this.setState({ content, levels, pieChartData }, () => {
+            this.updatePieChart() // Update the chart here
+          })
         }
 
         drawPieChart() {
