@@ -92,6 +92,12 @@
     </style>
   </head>
   <body>
+    <audio
+      id="saveSound"
+      src="./audio/Confirmation.ogg"
+      type="audio/ogg"
+    ></audio>
+
     <div id="app"></div>
     <script type="module">
       import { html, render, Component } from './js/standalone.module.js'
@@ -165,11 +171,17 @@
         updateDashboard(content) {
           let levels = { ...this.state.levels }
           let pieChartData = []
+          let playSound = false // Add this line
 
           Object.keys(content).forEach(key => {
             if (!levels[key]) levels[key] = 1
-            levels[key] =
-              Math.floor(content[key] / this.state.maxValues[key]) + 1
+            let newLevel =
+              Math.floor(content[key] / this.state.maxValues[key]) + 1 // Modify this line
+            if (newLevel > levels[key]) {
+              // Add this block
+              playSound = true
+            }
+            levels[key] = newLevel // Modify this line
             content[key] = content[key] % this.state.maxValues[key]
             pieChartData.push(
               content[key] + (levels[key] - 1) * this.state.maxValues[key]
@@ -177,6 +189,10 @@
           })
           this.setState({ content, levels, pieChartData }, () => {
             this.updatePieChart() // Update the chart here
+            if (playSound) {
+              // Add this block
+              document.getElementById('saveSound').play()
+            }
           })
         }
 
