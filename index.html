@@ -102,6 +102,23 @@
     <script type="module">
       import { html, render, Component } from './js/standalone.module.js'
 
+      const colorPalette = [
+        '#FF6384',
+        '#36A2EB',
+        '#FFCE56',
+        '#4BC0C0',
+        '#9966FF',
+        '#FF9F40',
+        '#E1396C',
+        '#D9DD39',
+        '#40D879',
+        '#39A2D9'
+        //... add more colors if you expect more labels
+      ]
+
+      let labelColorMapping = {}
+      let currentColorIndex = 0 // Define currentColorIndex here
+
       class App extends Component {
         constructor() {
           super()
@@ -113,7 +130,8 @@
           console.log(relay)
 
           this.state = {
-            maxValues: { chores: 20000, work: 20000 },
+            maxValues: { chores: 20000, work: 20000, czech: 20000 },
+            maxValue: 20000,
             levels: {},
             pieChartData: [0, 0],
             socket: new WebSocket(relay),
@@ -141,6 +159,15 @@
           this.state.socket.send(data)
         }
 
+        getRandomColor() {
+          const letters = '0123456789ABCDEF'
+          let color = '#'
+          for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)]
+          }
+          return color
+        }
+
         // New function to initialize the chart
         initializeChart() {
           const ctx = document.getElementById('pieChart').getContext('2d')
@@ -151,7 +178,7 @@
               datasets: [
                 {
                   data: this.state.pieChartData,
-                  backgroundColor: ['#ff9999', '#66b3ff'],
+                  backgroundColor: ['#ff9999', '#66b3ff', '#338844'],
                   borderColor: ['black', 'black']
                 }
               ]
@@ -161,39 +188,50 @@
         }
 
         // New function to update the chart
-        updatePieChart() {
-          if (this.state.chart) {
-            this.state.chart.data.datasets[0].data = this.state.pieChartData
-            this.state.chart.update()
-          }
-        }
 
         updateDashboard(content) {
           let levels = { ...this.state.levels }
           let pieChartData = []
-          let playSound = false // Add this line
+          let pieChartColors = []
+          let pieChartLabels = [] // New array to store labels dynamically
 
           Object.keys(content).forEach(key => {
+            // If the label doesn’t have a color, assign one
+            if (!labelColorMapping[key]) {
+              labelColorMapping[key] =
+                colorPalette[currentColorIndex % colorPalette.length]
+              currentColorIndex++
+            }
             if (!levels[key]) levels[key] = 1
-            let newLevel =
-              Math.floor(content[key] / this.state.maxValues[key]) + 1 // Modify this line
-            if (newLevel > levels[key]) {
-              // Add this block
-              playSound = true
-            }
-            levels[key] = newLevel // Modify this line
-            content[key] = content[key] % this.state.maxValues[key]
+            let newLevel = Math.floor(content[key] / this.state.maxValue) + 1
+            levels[key] = newLevel
+            content[key] = content[key] % this.state.maxValue
+
             pieChartData.push(
-              content[key] + (levels[key] - 1) * this.state.maxValues[key]
+              content[key] + (levels[key] - 1) * this.state.maxValue
             )
+
+            pieChartColors.push(this.getRandomColor()) // Push a random color for each key
+            pieChartLabels.push(key) // Push the key as a label
           })
+
+          // Update state and refresh the pie chart with new labels and data
           this.setState({ content, levels, pieChartData }, () => {
-            this.updatePieChart() // Update the chart here
-            if (playSound) {
-              // Add this block
-              document.getElementById('saveSound').play()
-            }
+            this.updatePieChart(pieChartLabels, pieChartColors) // Add pieChartColors as the second argument
           })
+        }
+
+        updatePieChart(newLabels, newColors) {
+          if (this.state.chart) {
+            this.state.chart.data.labels = newLabels
+            this.state.chart.data.datasets[0].data = this.state.pieChartData
+            this.state.chart.data.datasets[0].backgroundColor = newColors // Update colors
+            // Use mapped colors for the dataset
+            this.state.chart.data.datasets[0].backgroundColor = newLabels.map(
+              label => labelColorMapping[label]
+            )
+            this.state.chart.update()
+          }
         }
 
         drawPieChart() {
@@ -229,11 +267,11 @@
                         <div
                           class="progress-fill"
                           style="width: ${(state.content[key] /
-                            state.maxValues[key]) *
+                            state.maxValue) *
                           100}%;"
                         ></div>
                       </div>
-                      <div>${state.content[key]}/${state.maxValues[key]}</div>
+                      <div>${state.content[key]}/${state.maxValue}</div>
                     </div>
                   `
                 )}
