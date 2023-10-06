@@ -271,7 +271,13 @@
                           100}%;"
                         ></div>
                       </div>
-                      <div>${state.content[key]}/${state.maxValue}</div>
+                      <div>
+                        ${state.content[key]}/${state.maxValue}
+                        <b
+                          >(${state.content[key] +
+                          (state.levels[key] - 1) * state.maxValue})</b
+                        >
+                      </div>
                     </div>
                   `
                 )}
