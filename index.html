@@ -204,6 +204,10 @@
             }
             if (!levels[key]) levels[key] = 1
             let newLevel = Math.floor(content[key] / this.state.maxValue) + 1
+            if (newLevel > levels[key]) {
+              // If the new level is higher than the current level, play the sound
+              document.getElementById('saveSound').play()
+            }
             levels[key] = newLevel
             content[key] = content[key] % this.state.maxValue
 
