@@ -257,12 +257,21 @@
         }
 
         render(props, state) {
+          // Sort the keys by total points in descending order
+          const sortedKeys = Object.keys(state.content).sort((a, b) => {
+            const totalPointsA =
+              state.content[a] + (state.levels[a] - 1) * state.maxValue
+            const totalPointsB =
+              state.content[b] + (state.levels[b] - 1) * state.maxValue
+            return totalPointsA - totalPointsB
+          })
+
           return html`
             <div>
               <h2>Gamestr Dashboard</h2>
               <button onClick=${() => this.sendData()}>Start</button>
               <div id="dashboard">
-                ${Object.keys(state.content).map(
+                ${sortedKeys.map(
                   key => html`
                     <div class="progress-container">
                       <div class="progress-label">${key}</div>
