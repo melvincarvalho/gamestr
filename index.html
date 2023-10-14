@@ -125,7 +125,10 @@
 
           let relay =
             new URLSearchParams(window.location.search).get('r') ||
-            'ws://localhost:4444/'
+            'wsd://nostr.rocks:4444/'
+          let pubkey =
+            new URLSearchParams(window.location.search).get('pubkey') ||
+            '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746'
 
           console.log(relay)
 
@@ -135,8 +138,7 @@
             levels: {},
             pieChartData: [0, 0],
             socket: new WebSocket(relay),
-            pubkey:
-              '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746',
+            pubkey: pubkey,
             kind: 33334,
             content: {}
           }
