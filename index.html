@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gamestr Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./js/chart.js"></script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -124,7 +124,7 @@
 
           let relay =
             new URLSearchParams(window.location.search).get('r') ||
-            'wsd://nostr.rocks:4444/'
+            'wss://nostr.rocks:4444/'
           let pubkey =
             new URLSearchParams(window.location.search).get('pubkey') ||
             '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746'
@@ -132,7 +132,7 @@
           console.log(relay)
 
           this.state = {
-            maxValues: { chores: 20000, work: 20000, czech: 20000 },
+            maxValues: { chores: 20000, work: 20000, bot: 20000 },
             maxValue: 20000,
             levels: {},
             pieChartData: [0, 0],
