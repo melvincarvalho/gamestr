@@ -153,6 +153,10 @@
             const content = JSON.parse(json[2].content)
             this.updateDashboard(content)
           }
+
+          setTimeout(() => {
+            this.sendData()
+          }, 500)
         }
 
         sendData = () => {
@@ -270,7 +274,7 @@
           return html`
             <div>
               <h2>Gamestr Dashboard</h2>
-              <button onClick=${() => this.sendData()}>Start</button>
+              <!-- <button onClick=${() => this.sendData()}>Start</button> -->
               <div id="dashboard">
                 ${sortedKeys.map(
                   key => html`
