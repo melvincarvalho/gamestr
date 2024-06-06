@@ -98,6 +98,12 @@
       type="audio/ogg"
     ></audio>
 
+    <audio
+      id="doneSound"
+      src="./audio/a_happy_start_bell2.mp3"
+      type="audio/ogg"
+    ></audio>
+
     <div id="app"></div>
     <script type="module">
       import { html, render, Component } from './js/standalone.module.js'
@@ -132,8 +138,10 @@
           console.log(relay)
 
           this.state = {
-            maxValues: { chores: 5000, work: 5000, bot: 5000 },
-            maxValue: 5000,
+            maxValues: { chores: 10000, work: 10000, bot: 10000 },
+            maxValue: 10000,
+            previousTotal: 0,
+            total: 0,
             levels: {},
             pieChartData: [0, 0],
             socket: new WebSocket(relay),
@@ -160,7 +168,7 @@
         }
 
         sendData = () => {
-          const data = `["REQ", "hyper", {"kinds":[${this.state.kind}], "authors": ["${this.state.pubkey}"]}]`
+          const data = `["REQ", "gamestr", {"kinds":[${this.state.kind}], "authors": ["${this.state.pubkey}"]}]`
           this.state.socket.send(data)
         }
 
@@ -192,6 +200,11 @@
           })
         }
 
+        // UTILS
+        block(val, size = 10000) {
+          return Math.floor(val / size)
+        }
+
         // New function to update the chart
 
         updateDashboard(content) {
@@ -199,8 +212,32 @@
           let pieChartData = []
           let pieChartColors = []
           let pieChartLabels = [] // New array to store labels dynamically
+          let previousTotal = this.state.previousTotal
+          let total = 0
+          console.log('totals', total, previousTotal)
 
           Object.keys(content).forEach(key => {
+            console.log(content, key, content[key])
+            if (content[key]) {
+              total += parseInt(content[key])
+              this.setState({ total })
+              console.log(
+                'totals',
+                total,
+                previousTotal,
+                this.block(total),
+                this.block(previousTotal)
+              )
+              if (this.block(total) > this.block(previousTotal)) {
+                try {
+                  document.getElementById('doneSound').play()
+                  console.log('sound')
+                  this.setState({ previousTotal })
+                } catch (error) {
+                  console.error(error)
+                }
+              }
+            }
             // If the label doesn’t have a color, assign one
             if (!labelColorMapping[key]) {
               labelColorMapping[key] =
@@ -211,7 +248,8 @@
             let newLevel = Math.floor(content[key] / this.state.maxValue) + 1
             if (newLevel > levels[key]) {
               // If the new level is higher than the current level, play the sound
-              document.getElementById('saveSound').play()
+              // document.getElementById('saveSound').play()
+              document.getElementById('doneSound').play()
             }
             levels[key] = newLevel
             content[key] = content[key] % this.state.maxValue
@@ -225,9 +263,12 @@
           })
 
           // Update state and refresh the pie chart with new labels and data
-          this.setState({ content, levels, pieChartData }, () => {
-            this.updatePieChart(pieChartLabels, pieChartColors) // Add pieChartColors as the second argument
-          })
+          this.setState(
+            { content, levels, pieChartData, previousTotal: total },
+            () => {
+              this.updatePieChart(pieChartLabels, pieChartColors) // Add pieChartColors as the second argument
+            }
+          )
         }
 
         updatePieChart(newLabels, newColors) {
