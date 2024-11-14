@@ -77,7 +77,6 @@
 
       .progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #4caf50, #45a049);
         border-radius: 10px;
         transition: width 0.5s ease-in-out;
       }
@@ -110,6 +109,38 @@
 
       button:hover {
         background-color: #45a049;
+      }
+
+      /* Add these new CSS classes for level colors */
+      .level-1 .progress-fill {
+        background: linear-gradient(90deg, #2196f3, #1976d2);
+      }
+      .level-2 .progress-fill {
+        background: linear-gradient(90deg, #00bcd4, #0097a7);
+      }
+      .level-3 .progress-fill {
+        background: linear-gradient(90deg, #009688, #00796b);
+      }
+      .level-4 .progress-fill {
+        background: linear-gradient(90deg, #4caf50, #388e3c);
+      }
+      .level-5 .progress-fill {
+        background: linear-gradient(90deg, #8bc34a, #689f38);
+      }
+      .level-6 .progress-fill {
+        background: linear-gradient(90deg, #cddc39, #afb42b);
+      }
+      .level-7 .progress-fill {
+        background: linear-gradient(90deg, #ffc107, #ffa000);
+      }
+      .level-8 .progress-fill {
+        background: linear-gradient(90deg, #ff9800, #f57c00);
+      }
+      .level-9 .progress-fill {
+        background: linear-gradient(90deg, #ff5722, #e64a19);
+      }
+      .level-10 .progress-fill {
+        background: linear-gradient(90deg, #f44336, #d32f2f);
       }
     </style>
   </head>
@@ -374,7 +405,7 @@
                   )
 
                   return html`
-                    <div class="progress-container">
+                    <div class="progress-container level-${level}">
                       <div class="progress-label">${key}</div>
                       <div class="level">Level ${level}</div>
                       <div class="progress-bar">
