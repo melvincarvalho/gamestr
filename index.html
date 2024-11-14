@@ -264,11 +264,48 @@
                 {
                   data: this.state.pieChartData,
                   backgroundColor: ['#ff9999', '#66b3ff', '#338844'],
-                  borderColor: ['black', 'black']
+                  borderColor: ['white', 'white'],
+                  borderWidth: 2
                 }
               ]
             },
-            options: {}
+            options: {
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: {
+                    padding: 20,
+                    font: {
+                      size: 14,
+                      family: 'Arial'
+                    }
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0,0,0,0.8)',
+                  padding: 12,
+                  titleFont: {
+                    size: 14
+                  },
+                  bodyFont: {
+                    size: 13
+                  },
+                  displayColors: true,
+                  callbacks: {
+                    label: function (context) {
+                      const value = context.raw
+                      return ` ${context.label}: ${value.toLocaleString()} sats`
+                    }
+                  }
+                }
+              },
+              cutout: '0%',
+              radius: '90%',
+              animation: {
+                animateScale: true,
+                animateRotate: true
+              }
+            }
           })
         }
 
