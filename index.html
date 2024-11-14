@@ -57,6 +57,7 @@
         font-weight: 600;
         color: #2c3e50;
         margin-bottom: 8px;
+        text-align: center;
       }
 
       .level {
@@ -64,6 +65,7 @@
         color: #2c3e50;
         margin-bottom: 12px;
         font-weight: bold;
+        text-align: center;
       }
 
       .progress-bar {
@@ -251,7 +253,7 @@
           this.state.chart = new Chart(ctx, {
             type: 'pie',
             data: {
-              labels: ['Chores', 'Workkk'],
+              labels: ['Chores', 'Work'],
               datasets: [
                 {
                   data: this.state.pieChartData,
@@ -301,13 +303,13 @@
             // Calculate new level based on points for this specific key
             const newLevel = this.calculateLevel(totalPoints)
 
-            // Improved level-up sound logic
+            // Level-up sound logic
             if (!levels[key]) {
               levels[key] = 1
             } else if (newLevel > levels[key]) {
               const doneSound = document.getElementById('doneSound')
               if (doneSound) {
-                doneSound.currentTime = 0 // Reset the audio to start
+                doneSound.currentTime = 0
                 doneSound
                   .play()
                   .catch(e => console.log('Audio play failed:', e))
@@ -385,8 +387,7 @@
                   if (level === this.levelThresholds.length) {
                     return html`
                       <div class="progress-container">
-                        <div class="progress-label">${key}</div>
-                        <div class="level">Level: ${level} (Max)</div>
+                        <div class="progress-label">${level}: ${key}</div>
                         <div class="progress-bar">
                           <div class="progress-fill" style="width: 100%;"></div>
                         </div>
@@ -406,8 +407,7 @@
 
                   return html`
                     <div class="progress-container level-${level}">
-                      <div class="progress-label">${key}</div>
-                      <div class="level">Level ${level}</div>
+                      <div class="progress-label">${level}: ${key}</div>
                       <div class="progress-bar">
                         <div
                           class="progress-fill"
