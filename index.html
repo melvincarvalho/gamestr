@@ -14,6 +14,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        margin: 0;
       }
 
       h2 {
@@ -22,7 +23,7 @@
 
       #pieChartContainer {
         display: block;
-        width: 100%;
+        width: calc(100% - 30px);
         height: 400px;
         margin: 30px auto;
         background-color: #fff;
@@ -37,7 +38,7 @@
       }
 
       #dashboard {
-        width: 100%;
+        width: calc(100% - 40px);
         padding: 20px;
         border: 1px solid #e0e0e0;
         background-color: #fff;
@@ -156,6 +157,41 @@
       }
       .level-10 .progress-fill {
         background: linear-gradient(90deg, #f44336, #d32f2f);
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+
+        #dashboard,
+        #pieChartContainer {
+          width: calc(100% - 40px);
+        }
+
+        .progress-container {
+          padding: 10px;
+        }
+
+        .progress-stats {
+          flex-direction: column;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .progress-text {
+          font-size: 0.9em;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .progress-label {
+          font-size: 1em;
+        }
+
+        .progress-text {
+          font-size: 0.8em;
+        }
       }
     </style>
   </head>
