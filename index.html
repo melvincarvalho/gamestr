@@ -71,17 +71,28 @@
 
       .progress-bar {
         width: 100%;
-        height: 20px;
-        background-color: #eef2f5;
-        border-radius: 10px;
+        height: 35px;
+        background-color: #4b3726;
+        border-radius: 25px;
         overflow: hidden;
         margin-bottom: 8px;
+        position: relative;
       }
 
       .progress-fill {
         height: 100%;
         border-radius: 10px;
         transition: width 0.5s ease-in-out;
+      }
+
+      .progress-text {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        line-height: 35px;
+        color: white;
+        font-weight: bold;
+        z-index: 1;
       }
 
       .progress-stats {
@@ -449,7 +460,7 @@
                   if (level === this.levelThresholds.length) {
                     return html`
                       <div class="progress-container">
-                        <div class="progress-label">${level}: ${key}</div>
+                        <div class="progress-label">Level ${level}: ${key}</div>
                         <div class="progress-bar">
                           <div class="progress-fill" style="width: 100%;"></div>
                         </div>
@@ -469,8 +480,11 @@
 
                   return html`
                     <div class="progress-container level-${level}">
-                      <div class="progress-label">${level}: ${key}</div>
+                      <div class="progress-label">Level ${level}: ${key}</div>
                       <div class="progress-bar">
+                        <div class="progress-text">
+                          ${currentLevelProgress.toLocaleString()}/${pointsForNextLevel.toLocaleString()}
+                        </div>
                         <div
                           class="progress-fill"
                           style="width: ${progressPercentage}%;"
