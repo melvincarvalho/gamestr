@@ -506,7 +506,14 @@
                   if (level === this.levelThresholds.length) {
                     return html`
                       <div class="progress-container">
-                        <div class="progress-label">Level ${level}: ${key}</div>
+                        <div
+                          class="progress-label"
+                          style="color: ${labelColorMapping[
+                            key
+                          ]}; text-shadow: 1px 1px 1px rgba(0,0,0,0.1); font-weight: bold;"
+                        >
+                          Level ${level}: ${key}
+                        </div>
                         <div class="progress-bar">
                           <div class="progress-fill" style="width: 100%;"></div>
                         </div>
@@ -526,7 +533,14 @@
 
                   return html`
                     <div class="progress-container level-${level}">
-                      <div class="progress-label">Level ${level}: ${key}</div>
+                      <div
+                        class="progress-label"
+                        style="color: ${labelColorMapping[
+                          key
+                        ]}; text-shadow: 1px 1px 1px rgba(0,0,0,0.1); font-weight: bold;"
+                      >
+                        Level ${level}: ${key}
+                      </div>
                       <div class="progress-bar">
                         <div class="progress-text">
                           ${currentLevelProgress.toLocaleString()}/${pointsForNextLevel.toLocaleString()}
