@@ -19,6 +19,8 @@
 
       h2 {
         color: #333;
+        display: flex;
+        align-items: center;
       }
 
       #pieChartContainer {
@@ -193,6 +195,24 @@
           font-size: 0.8em;
         }
       }
+
+      /* Add these styles in the <style> section */
+      .connection-status {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-left: 10px;
+        transition: background-color 0.3s ease;
+      }
+
+      .connection-status.connected {
+        background-color: #4caf50;
+      }
+
+      .connection-status.disconnected {
+        background-color: #f44336;
+      }
     </style>
   </head>
   <body>
@@ -267,7 +287,8 @@
             pubkey: pubkey,
             kind: 33334,
             content: {},
-            audioEnabled: false
+            audioEnabled: false,
+            isConnected: false
           }
         }
 
@@ -280,6 +301,14 @@
             }
             const content = JSON.parse(json[2].content)
             this.updateDashboard(content)
+          }
+
+          this.state.socket.onopen = () => {
+            this.setState({ isConnected: true })
+          }
+
+          this.state.socket.onclose = () => {
+            this.setState({ isConnected: false })
           }
 
           setTimeout(() => {
@@ -488,7 +517,14 @@
 
           return html`
             <div>
-              <h2>Gamestr</h2>
+              <h2>
+                Gamestr
+                <span
+                  class=${`connection-status ${
+                    state.isConnected ? 'connected' : 'disconnected'
+                  }`}
+                ></span>
+              </h2>
               ${!state.audioEnabled &&
               html`
                 <button onclick=${this.enableAudio}>
