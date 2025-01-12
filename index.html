@@ -288,7 +288,8 @@
             kind: 33334,
             content: {},
             audioEnabled: false,
-            isConnected: false
+            isConnected: false,
+            relay: relay
           }
         }
 
@@ -303,8 +304,17 @@
             this.updateDashboard(content)
           }
 
+          // Initialize heartbeat
+          this.heartbeatInterval = setInterval(() => {
+            if (!this.state.isConnected) {
+              console.log('Attempting to reconnect...')
+              this.reconnect()
+            }
+          }, 60000) // Check every minute
+
           this.state.socket.onopen = () => {
             this.setState({ isConnected: true })
+            this.sendData() // Resend subscription when reconnected
           }
 
           this.state.socket.onclose = () => {
@@ -508,6 +518,53 @@
               this.setState({ audioEnabled: true })
             })
             .catch(e => console.log('Audio enable failed:', e))
+        }
+
+        reconnect() {
+          try {
+            // Close existing socket if it exists
+            if (this.state.socket) {
+              this.state.socket.close()
+            }
+
+            // Create new WebSocket connection
+            const newSocket = new WebSocket(this.state.relay)
+
+            // Set up event handlers for new socket
+            newSocket.onmessage = event => {
+              let json = JSON.parse(event.data)
+              if (json && json[0] === 'EOSE') {
+                return
+              }
+              const content = JSON.parse(json[2].content)
+              this.updateDashboard(content)
+            }
+
+            newSocket.onopen = () => {
+              this.setState({ isConnected: true })
+              this.sendData()
+            }
+
+            newSocket.onclose = () => {
+              this.setState({ isConnected: false })
+            }
+
+            // Update socket in state
+            this.setState({ socket: newSocket })
+          } catch (error) {
+            console.error('Reconnection failed:', error)
+          }
+        }
+
+        componentWillUnmount() {
+          // Clean up heartbeat interval when component unmounts
+          if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval)
+          }
+          // Close WebSocket connection
+          if (this.state.socket) {
+            this.state.socket.close()
+          }
         }
 
         render(props, state) {
