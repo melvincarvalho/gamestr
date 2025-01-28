@@ -283,10 +283,7 @@
             total: 0,
             levels: {},
             pieChartData: [0, 0],
-            socket: new WebSocket(relay, {
-              rejectUnauthorized: false,
-              secure: false
-            }),
+            socket: new WebSocket(relay),
             pubkey: pubkey,
             kind: 33334,
             content: {},
