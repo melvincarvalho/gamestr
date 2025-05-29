@@ -169,30 +169,75 @@
         #dashboard,
         #pieChartContainer {
           width: calc(100% - 40px);
+          margin: 0 auto;
         }
 
         .progress-container {
-          padding: 10px;
+          padding: 20px;
+          margin: 20px auto;
+          max-width: 85%;
+        }
+
+        .progress-label {
+          font-size: 1.3em;
+          margin-bottom: 15px;
+        }
+
+        .progress-bar {
+          height: 70px;
+          margin: 15px 0;
+          max-width: 100%;
+        }
+
+        .progress-text {
+          line-height: 70px;
+          font-size: 1em;
+          font-weight: bold;
         }
 
         .progress-stats {
           flex-direction: column;
           align-items: center;
-          gap: 5px;
-        }
-
-        .progress-text {
-          font-size: 0.9em;
+          gap: 8px;
+          font-size: 0.95em;
         }
       }
 
       @media (max-width: 480px) {
-        .progress-label {
-          font-size: 1em;
+        #dashboard,
+        #pieChartContainer {
+          width: calc(100% - 30px);
+          margin: 0 auto;
+        }
+
+        .progress-container {
+          padding: 18px;
+          margin: 18px auto;
+          max-width: 90%;
+        }
+
+        .progress-bar {
+          height: 80px;
+          margin: 15px 0;
         }
 
         .progress-text {
-          font-size: 0.8em;
+          line-height: 80px;
+          font-size: 1.1em;
+        }
+
+        .progress-label {
+          font-size: 1.4em;
+          margin-bottom: 12px;
+        }
+
+        .progress-stats {
+          font-size: 1em;
+          gap: 10px;
+        }
+
+        #pieChartContainer {
+          height: 300px;
         }
       }
 
