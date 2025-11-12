@@ -363,6 +363,12 @@
           }
 
           this.state.socket.onclose = () => {
+            console.log('WebSocket closed')
+            this.setState({ isConnected: false })
+          }
+
+          this.state.socket.onerror = (error) => {
+            console.error('WebSocket error:', error)
             this.setState({ isConnected: false })
           }
 
@@ -372,8 +378,12 @@
         }
 
         sendData = () => {
-          const data = `["REQ", "gamestr", {"kinds":[${this.state.kind}], "authors": ["${this.state.pubkey}"]}]`
-          this.state.socket.send(data)
+          if (this.state.socket && this.state.socket.readyState === WebSocket.OPEN) {
+            const data = `["REQ", "gamestr", {"kinds":[${this.state.kind}], "authors": ["${this.state.pubkey}"]}]`
+            this.state.socket.send(data)
+          } else {
+            console.log('WebSocket not ready, skipping sendData')
+          }
         }
 
         getRandomColor() {
@@ -586,11 +596,18 @@
             }
 
             newSocket.onopen = () => {
-              this.setState({ isConnected: true })
+              console.log('WebSocket reconnected')
+              this.setState({ isConnected: true, socket: newSocket })
               this.sendData()
             }
 
             newSocket.onclose = () => {
+              console.log('WebSocket closed during reconnect')
+              this.setState({ isConnected: false })
+            }
+
+            newSocket.onerror = (error) => {
+              console.error('WebSocket error during reconnect:', error)
               this.setState({ isConnected: false })
             }
 
@@ -598,6 +615,7 @@
             this.setState({ socket: newSocket })
           } catch (error) {
             console.error('Reconnection failed:', error)
+            this.setState({ isConnected: false })
           }
         }
 
