@@ -1,0 +1,23 @@
+{
+  "name": "gamestr",
+  "version": "0.0.1",
+  "description": "gamestr",
+  "keywords": [
+    "gamestr"
+  ],
+  "homepage": "https://github.com/melvincarvalho/gamestr#readme",
+  "bugs": {
+    "url": "https://github.com/melvincarvalho/gamestr/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/melvincarvalho/gamestr.git"
+  },
+  "license": "MIT",
+  "author": "Melvin Carvalho",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
