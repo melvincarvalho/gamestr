@@ -342,18 +342,23 @@
           this.reconnectAttempts = 0
           this.maxReconnectAttempts = 5
           this.chartUpdatePending = false
+
+          // Message debouncing
+          this.pendingContent = null
+          this.updateDebounceTimer = null
+          this.updateDebounceDelay = 250  // ms
+
+          // Ping/pong for zombie detection
+          this.lastMessageTime = Date.now()
+          this.zombieCheckInterval = null
+
+          // Mobile detection
+          this.isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
         }
 
         componentDidMount() {
           this.initializeChart()
-          this.state.socket.onmessage = event => {
-            let json = JSON.parse(event.data)
-            if (json && json[0] === 'EOSE') {
-              return
-            }
-            const content = JSON.parse(json[2].content)
-            this.updateDashboard(content)
-          }
+          this.setupSocketHandlers(this.state.socket)
 
           // Initialize heartbeat
           this.heartbeatInterval = setInterval(() => {
@@ -365,24 +370,85 @@
             }
           }, 60000) // Check every minute
 
-          this.state.socket.onopen = () => {
-            this.setState({ isConnected: true })
-            this.sendData() // Resend subscription when reconnected
-          }
+          // Zombie connection detection - check if we've received data recently
+          this.zombieCheckInterval = setInterval(() => {
+            if (this.state.isConnected) {
+              const timeSinceLastMessage = Date.now() - this.lastMessageTime
+              // If connected but no message in 2 minutes, consider it a zombie
+              if (timeSinceLastMessage > 120000) {
+                console.log('Zombie connection detected, reconnecting...')
+                this.reconnect()
+              }
+            }
+          }, 30000) // Check every 30 seconds
 
-          this.state.socket.onclose = () => {
-            console.log('WebSocket closed')
-            this.setState({ isConnected: false })
+          // Visibility change detection - reconnect when page becomes visible
+          this.handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+              console.log('Page became visible, checking connection...')
+              const timeSinceLastMessage = Date.now() - this.lastMessageTime
+              // If it's been more than 30 seconds since last message, reconnect
+              if (timeSinceLastMessage > 30000) {
+                console.log('Stale connection detected, reconnecting...')
+                this.reconnectAttempts = 0
+                this.reconnect()
+              }
+            }
           }
-
-          this.state.socket.onerror = (error) => {
-            console.error('WebSocket error:', error)
-            this.setState({ isConnected: false })
-          }
+          document.addEventListener('visibilitychange', this.handleVisibilityChange)
 
           setTimeout(() => {
             this.sendData()
           }, 500)
+        }
+
+        setupSocketHandlers(socket) {
+          socket.onmessage = event => {
+            try {
+              this.lastMessageTime = Date.now()
+              let json = JSON.parse(event.data)
+              if (json && json[0] === 'EOSE') {
+                return
+              }
+              if (!json[2] || !json[2].content) {
+                console.warn('Malformed message received:', json)
+                return
+              }
+              const content = JSON.parse(json[2].content)
+              this.debouncedUpdateDashboard(content)
+            } catch (e) {
+              console.error('Error processing message:', e)
+            }
+          }
+
+          socket.onopen = () => {
+            this.lastMessageTime = Date.now()
+            this.setState({ isConnected: true })
+            this.sendData()
+          }
+
+          socket.onclose = () => {
+            console.log('WebSocket closed')
+            this.setState({ isConnected: false })
+          }
+
+          socket.onerror = (error) => {
+            console.error('WebSocket error:', error)
+            this.setState({ isConnected: false })
+          }
+        }
+
+        debouncedUpdateDashboard = (content) => {
+          this.pendingContent = content
+          if (this.updateDebounceTimer) {
+            clearTimeout(this.updateDebounceTimer)
+          }
+          this.updateDebounceTimer = setTimeout(() => {
+            if (this.pendingContent) {
+              this.updateDashboard(this.pendingContent)
+              this.pendingContent = null
+            }
+          }, this.updateDebounceDelay)
         }
 
         sendData = () => {
@@ -451,10 +517,14 @@
               },
               cutout: '0%',
               radius: '90%',
-              animation: {
+              // Disable animations on mobile for better performance
+              animation: this.isMobile ? false : {
                 animateScale: true,
                 animateRotate: true
-              }
+              },
+              // Reduce responsiveness overhead on mobile
+              responsive: true,
+              maintainAspectRatio: false
             }
           })
         }
@@ -619,18 +689,28 @@
             // Create new WebSocket connection
             const newSocket = new WebSocket(this.state.relay)
 
-            // Set up event handlers for new socket
+            // Set up event handlers using shared setup
             newSocket.onmessage = event => {
-              let json = JSON.parse(event.data)
-              if (json && json[0] === 'EOSE') {
-                return
+              try {
+                this.lastMessageTime = Date.now()
+                let json = JSON.parse(event.data)
+                if (json && json[0] === 'EOSE') {
+                  return
+                }
+                if (!json[2] || !json[2].content) {
+                  console.warn('Malformed message received:', json)
+                  return
+                }
+                const content = JSON.parse(json[2].content)
+                this.debouncedUpdateDashboard(content)
+              } catch (e) {
+                console.error('Error processing message:', e)
               }
-              const content = JSON.parse(json[2].content)
-              this.updateDashboard(content)
             }
 
             newSocket.onopen = () => {
               console.log('WebSocket reconnected')
+              this.lastMessageTime = Date.now()
               this.isReconnecting = false
               this.reconnectAttempts = 0  // Reset on successful connection
               this.setState({ isConnected: true, socket: newSocket })
@@ -659,6 +739,18 @@
           // Clean up heartbeat interval when component unmounts
           if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval)
+          }
+          // Clean up zombie check interval
+          if (this.zombieCheckInterval) {
+            clearInterval(this.zombieCheckInterval)
+          }
+          // Clean up debounce timer
+          if (this.updateDebounceTimer) {
+            clearTimeout(this.updateDebounceTimer)
+          }
+          // Remove visibility change listener
+          if (this.handleVisibilityChange) {
+            document.removeEventListener('visibilitychange', this.handleVisibilityChange)
           }
           // Clean up WebSocket connection and handlers
           if (this.state.socket) {
