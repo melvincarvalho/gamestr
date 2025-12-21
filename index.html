@@ -336,6 +336,12 @@
             isConnected: false,
             relay: relay
           }
+
+          // Reconnection state
+          this.isReconnecting = false
+          this.reconnectAttempts = 0
+          this.maxReconnectAttempts = 5
+          this.chartUpdatePending = false
         }
 
         componentDidMount() {
@@ -352,6 +358,8 @@
           // Initialize heartbeat
           this.heartbeatInterval = setInterval(() => {
             if (!this.state.isConnected) {
+              // Reset attempts counter each heartbeat cycle to allow retries
+              this.reconnectAttempts = 0
               console.log('Attempting to reconnect...')
               this.reconnect()
             }
@@ -534,14 +542,21 @@
         }
 
         updatePieChart(newLabels) {
-          if (this.state.chart) {
-            this.state.chart.data.labels = newLabels
-            this.state.chart.data.datasets[0].data = this.state.pieChartData
-            this.state.chart.data.datasets[0].backgroundColor = newLabels.map(
-              label => labelColorMapping[label]
-            )
-            this.state.chart.update('none')
-          }
+          // Throttle chart updates using requestAnimationFrame
+          if (this.chartUpdatePending) return
+
+          this.chartUpdatePending = true
+          requestAnimationFrame(() => {
+            if (this.state.chart) {
+              this.state.chart.data.labels = newLabels
+              this.state.chart.data.datasets[0].data = this.state.pieChartData
+              this.state.chart.data.datasets[0].backgroundColor = newLabels.map(
+                label => labelColorMapping[label]
+              )
+              this.state.chart.update('none')
+            }
+            this.chartUpdatePending = false
+          })
         }
 
         drawPieChart() {
@@ -576,9 +591,28 @@
         }
 
         reconnect() {
+          // Guard against concurrent reconnection attempts
+          if (this.isReconnecting) {
+            console.log('Reconnection already in progress, skipping')
+            return
+          }
+
+          // Check max attempts
+          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.log('Max reconnection attempts reached, waiting for next heartbeat cycle')
+            return
+          }
+
+          this.isReconnecting = true
+          this.reconnectAttempts++
+
           try {
-            // Close existing socket if it exists
+            // Clean up existing socket handlers before closing
             if (this.state.socket) {
+              this.state.socket.onmessage = null
+              this.state.socket.onopen = null
+              this.state.socket.onclose = null
+              this.state.socket.onerror = null
               this.state.socket.close()
             }
 
@@ -597,24 +631,26 @@
 
             newSocket.onopen = () => {
               console.log('WebSocket reconnected')
+              this.isReconnecting = false
+              this.reconnectAttempts = 0  // Reset on successful connection
               this.setState({ isConnected: true, socket: newSocket })
               this.sendData()
             }
 
             newSocket.onclose = () => {
               console.log('WebSocket closed during reconnect')
+              this.isReconnecting = false
               this.setState({ isConnected: false })
             }
 
             newSocket.onerror = (error) => {
               console.error('WebSocket error during reconnect:', error)
+              this.isReconnecting = false
               this.setState({ isConnected: false })
             }
-
-            // Update socket in state
-            this.setState({ socket: newSocket })
           } catch (error) {
             console.error('Reconnection failed:', error)
+            this.isReconnecting = false
             this.setState({ isConnected: false })
           }
         }
@@ -624,9 +660,17 @@
           if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval)
           }
-          // Close WebSocket connection
+          // Clean up WebSocket connection and handlers
           if (this.state.socket) {
+            this.state.socket.onmessage = null
+            this.state.socket.onopen = null
+            this.state.socket.onclose = null
+            this.state.socket.onerror = null
             this.state.socket.close()
+          }
+          // Destroy chart instance to free memory
+          if (this.state.chart) {
+            this.state.chart.destroy()
           }
         }
 
