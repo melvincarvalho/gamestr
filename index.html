@@ -386,16 +386,37 @@
           this.handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
               console.log('Page became visible, checking connection...')
-              const timeSinceLastMessage = Date.now() - this.lastMessageTime
-              // If it's been more than 30 seconds since last message, reconnect
-              if (timeSinceLastMessage > 30000) {
-                console.log('Stale connection detected, reconnecting...')
-                this.reconnectAttempts = 0
-                this.reconnect()
-              }
+              this.checkAndReconnectIfStale()
             }
           }
           document.addEventListener('visibilitychange', this.handleVisibilityChange)
+
+          // pageshow is more reliable on mobile browsers
+          this.handlePageShow = (event) => {
+            console.log('Page show event, persisted:', event.persisted)
+            // If page was restored from bfcache or after being frozen
+            if (event.persisted) {
+              console.log('Page restored from cache, forcing reconnect...')
+              this.forceReconnect()
+            } else {
+              this.checkAndReconnectIfStale()
+            }
+          }
+          window.addEventListener('pageshow', this.handlePageShow)
+
+          // Touch/click handler to detect frozen state on user interaction
+          this.handleUserInteraction = () => {
+            this.checkAndReconnectIfStale()
+          }
+          document.addEventListener('touchstart', this.handleUserInteraction, { passive: true })
+          document.addEventListener('click', this.handleUserInteraction)
+
+          // Focus handler - window regaining focus
+          this.handleFocus = () => {
+            console.log('Window focused, checking connection...')
+            this.checkAndReconnectIfStale()
+          }
+          window.addEventListener('focus', this.handleFocus)
 
           setTimeout(() => {
             this.sendData()
@@ -449,6 +470,41 @@
               this.pendingContent = null
             }
           }, this.updateDebounceDelay)
+        }
+
+        checkAndReconnectIfStale = () => {
+          const timeSinceLastMessage = Date.now() - this.lastMessageTime
+          // If more than 60 seconds since last message, connection is likely dead
+          if (timeSinceLastMessage > 60000) {
+            console.log(`Connection stale (${Math.round(timeSinceLastMessage / 1000)}s), reconnecting...`)
+            this.forceReconnect()
+            return true
+          }
+          return false
+        }
+
+        forceReconnect = () => {
+          // Reset all reconnection state
+          this.isReconnecting = false
+          this.reconnectAttempts = 0
+          // Force close current socket if exists
+          if (this.state.socket) {
+            try {
+              this.state.socket.onmessage = null
+              this.state.socket.onopen = null
+              this.state.socket.onclose = null
+              this.state.socket.onerror = null
+              this.state.socket.close()
+            } catch (e) {
+              console.error('Error closing socket:', e)
+            }
+          }
+          this.setState({ isConnected: false }, () => {
+            // Small delay then reconnect
+            setTimeout(() => {
+              this.reconnect()
+            }, 100)
+          })
         }
 
         sendData = () => {
@@ -748,9 +804,19 @@
           if (this.updateDebounceTimer) {
             clearTimeout(this.updateDebounceTimer)
           }
-          // Remove visibility change listener
+          // Remove all event listeners
           if (this.handleVisibilityChange) {
             document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+          }
+          if (this.handlePageShow) {
+            window.removeEventListener('pageshow', this.handlePageShow)
+          }
+          if (this.handleUserInteraction) {
+            document.removeEventListener('touchstart', this.handleUserInteraction)
+            document.removeEventListener('click', this.handleUserInteraction)
+          }
+          if (this.handleFocus) {
+            window.removeEventListener('focus', this.handleFocus)
           }
           // Clean up WebSocket connection and handlers
           if (this.state.socket) {
