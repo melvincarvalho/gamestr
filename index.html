@@ -354,6 +354,10 @@
 
           // Mobile detection
           this.isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+          // RAF heartbeat for detecting browser suspension
+          this.lastHeartbeat = Date.now()
+          this.heartbeatRAF = null
         }
 
         componentDidMount() {
@@ -418,9 +422,31 @@
           }
           window.addEventListener('focus', this.handleFocus)
 
+          // Start RAF heartbeat - detects when browser was suspended
+          this.startHeartbeat()
+
           setTimeout(() => {
             this.sendData()
           }, 500)
+        }
+
+        startHeartbeat = () => {
+          const heartbeat = () => {
+            const now = Date.now()
+            const elapsed = now - this.lastHeartbeat
+
+            // If more than 5 seconds elapsed since last heartbeat,
+            // the browser was likely suspended
+            if (elapsed > 5000) {
+              console.log(`Browser was suspended for ${Math.round(elapsed / 1000)}s, checking connection...`)
+              this.checkAndReconnectIfStale()
+            }
+
+            this.lastHeartbeat = now
+            this.heartbeatRAF = requestAnimationFrame(heartbeat)
+          }
+
+          this.heartbeatRAF = requestAnimationFrame(heartbeat)
         }
 
         setupSocketHandlers(socket) {
@@ -799,6 +825,10 @@
           // Clean up zombie check interval
           if (this.zombieCheckInterval) {
             clearInterval(this.zombieCheckInterval)
+          }
+          // Clean up RAF heartbeat
+          if (this.heartbeatRAF) {
+            cancelAnimationFrame(this.heartbeatRAF)
           }
           // Clean up debounce timer
           if (this.updateDebounceTimer) {
