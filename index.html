@@ -258,36 +258,6 @@
       .connection-status.disconnected {
         background-color: #f44336;
       }
-
-      .recovery-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        color: white;
-        font-size: 1.5em;
-      }
-
-      .recovery-spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid #ffffff33;
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 20px;
-      }
-
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
     </style>
   </head>
   <body>
@@ -364,7 +334,6 @@
             content: {},
             audioEnabled: false,
             isConnected: false,
-            isRecovering: false,
             relay: relay
           }
 
@@ -385,13 +354,6 @@
 
           // Mobile detection
           this.isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-
-          // RAF heartbeat for detecting browser suspension
-          this.lastHeartbeat = Date.now()
-          this.heartbeatRAF = null
-          this.isRecovering = false  // Guard against multiple recovery attempts
-          this.recoveryAttempts = 0
-          this.maxRecoveryAttempts = 3  // After 3 failed attempts, reload page
         }
 
         componentDidMount() {
@@ -420,148 +382,68 @@
             }
           }, 30000) // Check every 30 seconds
 
-          // Visibility change detection - reload page if stale on mobile
+          // Simple visibility change - just reconnect when page becomes visible
           this.handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-              console.log('Page became visible, checking connection...')
-              const timeSinceLastMessage = Date.now() - this.lastMessageTime
-              if (timeSinceLastMessage > 60000 && this.isMobile) {
-                console.log('Stale connection on visibility change, reloading...')
-                window.location.reload()
-                return
-              }
-              this.checkAndReconnectIfStale()
+              console.log('Page visible, reconnecting...')
+              this.simpleReconnect()
             }
           }
           document.addEventListener('visibilitychange', this.handleVisibilityChange)
 
-          // pageshow is more reliable on mobile browsers
+          // pageshow for bfcache restoration
           this.handlePageShow = (event) => {
-            console.log('Page show event, persisted:', event.persisted)
-            const timeSinceLastMessage = Date.now() - this.lastMessageTime
-            // If page was restored from bfcache, always reload on mobile
-            if (event.persisted && this.isMobile) {
-              console.log('Page restored from cache on mobile, reloading...')
-              window.location.reload()
-              return
+            if (event.persisted) {
+              console.log('Page restored from bfcache, reconnecting...')
+              this.simpleReconnect()
             }
-            if (timeSinceLastMessage > 60000 && this.isMobile) {
-              console.log('Stale on pageshow, reloading...')
-              window.location.reload()
-              return
-            }
-            this.checkAndReconnectIfStale()
           }
           window.addEventListener('pageshow', this.handlePageShow)
 
-          // Touch/click handler to detect frozen state on user interaction
-          // This is the most reliable way to recover on mobile
-          this.handleUserInteraction = () => {
-            const timeSinceLastMessage = Date.now() - this.lastMessageTime
-            // If stale, reload immediately on mobile
-            if (timeSinceLastMessage > 60000 && this.isMobile) {
-              console.log('Stale connection detected on interaction, reloading...')
-              window.location.reload()
-              return
-            }
-            // Otherwise just try to reconnect
-            if (timeSinceLastMessage > 60000) {
-              this.forceReconnect()
-            }
-          }
-          document.addEventListener('touchstart', this.handleUserInteraction, { passive: true })
-          document.addEventListener('click', this.handleUserInteraction)
-
-          // Focus handler - window regaining focus
+          // Focus handler
           this.handleFocus = () => {
-            console.log('Window focused, checking connection...')
-            const timeSinceLastMessage = Date.now() - this.lastMessageTime
-            if (timeSinceLastMessage > 60000 && this.isMobile) {
-              console.log('Stale on focus, reloading...')
-              window.location.reload()
-              return
-            }
-            this.checkAndReconnectIfStale()
+            console.log('Window focused, reconnecting...')
+            this.simpleReconnect()
           }
           window.addEventListener('focus', this.handleFocus)
-
-          // Start RAF heartbeat - detects when browser was suspended
-          this.startHeartbeat()
 
           setTimeout(() => {
             this.sendData()
           }, 500)
         }
 
-        startHeartbeat = () => {
-          const heartbeat = () => {
-            try {
-              const now = Date.now()
-              const elapsed = now - this.lastHeartbeat
-
-              // If more than 5 seconds elapsed since last heartbeat,
-              // the browser was likely suspended
-              if (elapsed > 5000 && !this.isRecovering) {
-                console.log(`Browser was suspended for ${Math.round(elapsed / 1000)}s, attempting recovery...`)
-                this.attemptRecovery()
-              }
-
-              this.lastHeartbeat = now
-            } catch (e) {
-              console.error('Heartbeat error:', e)
-            }
-            this.heartbeatRAF = requestAnimationFrame(heartbeat)
-          }
-
-          this.heartbeatRAF = requestAnimationFrame(heartbeat)
-        }
-
-        attemptRecovery = () => {
+        // Simple reconnect - close old socket, create new one
+        simpleReconnect = () => {
+          // Don't reconnect if already connected and receiving messages
           const timeSinceLastMessage = Date.now() - this.lastMessageTime
-
-          // On mobile, just reload if stale - it's the most reliable
-          if (timeSinceLastMessage > 60000 && this.isMobile) {
-            console.log('Stale connection detected by heartbeat, reloading...')
-            window.location.reload()
+          if (this.state.isConnected && timeSinceLastMessage < 30000) {
+            console.log('Connection still fresh, skipping reconnect')
             return
           }
 
-          if (this.isRecovering) {
-            console.log('Recovery already in progress, skipping')
-            return
-          }
+          console.log('Performing simple reconnect...')
 
-          // Check if actually stale
-          if (timeSinceLastMessage < 30000) {
-            console.log('Connection not stale, skipping recovery')
-            return
-          }
-
-          this.isRecovering = true
-          this.recoveryAttempts++
-          this.setState({ isRecovering: true })
-
-          console.log(`Recovery attempt ${this.recoveryAttempts}/${this.maxRecoveryAttempts}`)
-
-          // If too many attempts, just reload the page
-          if (this.recoveryAttempts > this.maxRecoveryAttempts) {
-            console.log('Too many recovery attempts, reloading page...')
-            window.location.reload()
-            return
-          }
-
-          // Force reconnect
-          this.forceReconnect()
-
-          // Set timeout to check if recovery succeeded
-          setTimeout(() => {
-            if (this.state.isConnected) {
-              console.log('Recovery successful')
-              this.recoveryAttempts = 0
+          // Close old socket
+          try {
+            if (this.state.socket) {
+              this.state.socket.onmessage = null
+              this.state.socket.onopen = null
+              this.state.socket.onclose = null
+              this.state.socket.onerror = null
+              this.state.socket.close()
             }
-            this.isRecovering = false
-            this.setState({ isRecovering: false })
-          }, 5000)
+          } catch (e) {
+            console.error('Error closing socket:', e)
+          }
+
+          // Create new socket
+          try {
+            const newSocket = new WebSocket(this.state.relay)
+            this.setupSocketHandlers(newSocket)
+            this.setState({ socket: newSocket, isConnected: false })
+          } catch (e) {
+            console.error('Error creating socket:', e)
+          }
         }
 
         setupSocketHandlers(socket) {
@@ -587,7 +469,7 @@
           socket.onopen = () => {
             this.lastMessageTime = Date.now()
             this.recoveryAttempts = 0  // Reset on successful connection
-            this.setState({ isConnected: true, isRecovering: false })
+            this.setState({ isConnected: true })
             this.sendData()
           }
 
@@ -613,46 +495,6 @@
               this.pendingContent = null
             }
           }, this.updateDebounceDelay)
-        }
-
-        checkAndReconnectIfStale = () => {
-          const timeSinceLastMessage = Date.now() - this.lastMessageTime
-          // If more than 60 seconds since last message, connection is likely dead
-          // On mobile, just reload the page - it's the most reliable recovery
-          if (timeSinceLastMessage > 60000) {
-            console.log(`Connection stale (${Math.round(timeSinceLastMessage / 1000)}s), reloading page...`)
-            if (this.isMobile) {
-              window.location.reload()
-              return true
-            }
-            this.forceReconnect()
-            return true
-          }
-          return false
-        }
-
-        forceReconnect = () => {
-          // Reset all reconnection state
-          this.isReconnecting = false
-          this.reconnectAttempts = 0
-          // Force close current socket if exists
-          if (this.state.socket) {
-            try {
-              this.state.socket.onmessage = null
-              this.state.socket.onopen = null
-              this.state.socket.onclose = null
-              this.state.socket.onerror = null
-              this.state.socket.close()
-            } catch (e) {
-              console.error('Error closing socket:', e)
-            }
-          }
-          this.setState({ isConnected: false }, () => {
-            // Small delay then reconnect
-            setTimeout(() => {
-              this.reconnect()
-            }, 100)
-          })
         }
 
         sendData = () => {
@@ -919,8 +761,7 @@
               this.isReconnecting = false
               this.reconnectAttempts = 0  // Reset on successful connection
               this.recoveryAttempts = 0   // Reset recovery attempts
-              this.isRecovering = false
-              this.setState({ isConnected: true, isRecovering: false, socket: newSocket })
+              this.setState({ isConnected: true, socket: newSocket })
               this.sendData()
             }
 
@@ -943,37 +784,21 @@
         }
 
         componentWillUnmount() {
-          // Clean up heartbeat interval when component unmounts
+          // Clean up intervals
           if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval)
           }
-          // Clean up zombie check interval
           if (this.zombieCheckInterval) {
             clearInterval(this.zombieCheckInterval)
           }
-          // Clean up RAF heartbeat
-          if (this.heartbeatRAF) {
-            cancelAnimationFrame(this.heartbeatRAF)
-          }
-          // Clean up debounce timer
           if (this.updateDebounceTimer) {
             clearTimeout(this.updateDebounceTimer)
           }
-          // Remove all event listeners
-          if (this.handleVisibilityChange) {
-            document.removeEventListener('visibilitychange', this.handleVisibilityChange)
-          }
-          if (this.handlePageShow) {
-            window.removeEventListener('pageshow', this.handlePageShow)
-          }
-          if (this.handleUserInteraction) {
-            document.removeEventListener('touchstart', this.handleUserInteraction)
-            document.removeEventListener('click', this.handleUserInteraction)
-          }
-          if (this.handleFocus) {
-            window.removeEventListener('focus', this.handleFocus)
-          }
-          // Clean up WebSocket connection and handlers
+          // Remove event listeners
+          document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+          window.removeEventListener('pageshow', this.handlePageShow)
+          window.removeEventListener('focus', this.handleFocus)
+          // Clean up WebSocket
           if (this.state.socket) {
             this.state.socket.onmessage = null
             this.state.socket.onopen = null
@@ -981,7 +806,7 @@
             this.state.socket.onerror = null
             this.state.socket.close()
           }
-          // Destroy chart instance to free memory
+          // Destroy chart
           if (this.state.chart) {
             this.state.chart.destroy()
           }
@@ -994,12 +819,6 @@
 
           return html`
             <div>
-              ${state.isRecovering && html`
-                <div class="recovery-overlay">
-                  <div class="recovery-spinner"></div>
-                  <div>Reconnecting...</div>
-                </div>
-              `}
               <h2>
                 Gamestr
                 <span
