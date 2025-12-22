@@ -420,10 +420,16 @@
             }
           }, 30000) // Check every 30 seconds
 
-          // Visibility change detection - reconnect when page becomes visible
+          // Visibility change detection - reload page if stale on mobile
           this.handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
               console.log('Page became visible, checking connection...')
+              const timeSinceLastMessage = Date.now() - this.lastMessageTime
+              if (timeSinceLastMessage > 60000 && this.isMobile) {
+                console.log('Stale connection on visibility change, reloading...')
+                window.location.reload()
+                return
+              }
               this.checkAndReconnectIfStale()
             }
           }
@@ -432,19 +438,36 @@
           // pageshow is more reliable on mobile browsers
           this.handlePageShow = (event) => {
             console.log('Page show event, persisted:', event.persisted)
-            // If page was restored from bfcache or after being frozen
-            if (event.persisted) {
-              console.log('Page restored from cache, forcing reconnect...')
-              this.forceReconnect()
-            } else {
-              this.checkAndReconnectIfStale()
+            const timeSinceLastMessage = Date.now() - this.lastMessageTime
+            // If page was restored from bfcache, always reload on mobile
+            if (event.persisted && this.isMobile) {
+              console.log('Page restored from cache on mobile, reloading...')
+              window.location.reload()
+              return
             }
+            if (timeSinceLastMessage > 60000 && this.isMobile) {
+              console.log('Stale on pageshow, reloading...')
+              window.location.reload()
+              return
+            }
+            this.checkAndReconnectIfStale()
           }
           window.addEventListener('pageshow', this.handlePageShow)
 
           // Touch/click handler to detect frozen state on user interaction
+          // This is the most reliable way to recover on mobile
           this.handleUserInteraction = () => {
-            this.checkAndReconnectIfStale()
+            const timeSinceLastMessage = Date.now() - this.lastMessageTime
+            // If stale, reload immediately on mobile
+            if (timeSinceLastMessage > 60000 && this.isMobile) {
+              console.log('Stale connection detected on interaction, reloading...')
+              window.location.reload()
+              return
+            }
+            // Otherwise just try to reconnect
+            if (timeSinceLastMessage > 60000) {
+              this.forceReconnect()
+            }
           }
           document.addEventListener('touchstart', this.handleUserInteraction, { passive: true })
           document.addEventListener('click', this.handleUserInteraction)
@@ -452,6 +475,12 @@
           // Focus handler - window regaining focus
           this.handleFocus = () => {
             console.log('Window focused, checking connection...')
+            const timeSinceLastMessage = Date.now() - this.lastMessageTime
+            if (timeSinceLastMessage > 60000 && this.isMobile) {
+              console.log('Stale on focus, reloading...')
+              window.location.reload()
+              return
+            }
             this.checkAndReconnectIfStale()
           }
           window.addEventListener('focus', this.handleFocus)
@@ -488,8 +517,23 @@
         }
 
         attemptRecovery = () => {
+          const timeSinceLastMessage = Date.now() - this.lastMessageTime
+
+          // On mobile, just reload if stale - it's the most reliable
+          if (timeSinceLastMessage > 60000 && this.isMobile) {
+            console.log('Stale connection detected by heartbeat, reloading...')
+            window.location.reload()
+            return
+          }
+
           if (this.isRecovering) {
             console.log('Recovery already in progress, skipping')
+            return
+          }
+
+          // Check if actually stale
+          if (timeSinceLastMessage < 30000) {
+            console.log('Connection not stale, skipping recovery')
             return
           }
 
@@ -503,16 +547,6 @@
           if (this.recoveryAttempts > this.maxRecoveryAttempts) {
             console.log('Too many recovery attempts, reloading page...')
             window.location.reload()
-            return
-          }
-
-          // Check if actually stale
-          const timeSinceLastMessage = Date.now() - this.lastMessageTime
-          if (timeSinceLastMessage < 30000) {
-            // Not actually stale, just reset
-            console.log('Connection not stale, resetting recovery state')
-            this.isRecovering = false
-            this.setState({ isRecovering: false })
             return
           }
 
@@ -584,8 +618,13 @@
         checkAndReconnectIfStale = () => {
           const timeSinceLastMessage = Date.now() - this.lastMessageTime
           // If more than 60 seconds since last message, connection is likely dead
+          // On mobile, just reload the page - it's the most reliable recovery
           if (timeSinceLastMessage > 60000) {
-            console.log(`Connection stale (${Math.round(timeSinceLastMessage / 1000)}s), reconnecting...`)
+            console.log(`Connection stale (${Math.round(timeSinceLastMessage / 1000)}s), reloading page...`)
+            if (this.isMobile) {
+              window.location.reload()
+              return true
+            }
             this.forceReconnect()
             return true
           }
