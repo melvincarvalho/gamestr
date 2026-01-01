@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gamestr Dashboard</title>
+    <script>
+      // Auto-refresh: if ?refresh=1 is in URL, add meta refresh tag
+      if (new URLSearchParams(window.location.search).get('refresh') === '1') {
+        document.write('<meta http-equiv="refresh" content="300">');
+      }
+    </script>
     <script src="./js/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -258,6 +264,50 @@
       .connection-status.disconnected {
         background-color: #f44336;
       }
+
+      .auto-refresh-toggle {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 12px;
+        cursor: pointer;
+        font-size: 0.7em;
+        color: #666;
+        user-select: none;
+      }
+
+      .auto-refresh-toggle input {
+        display: none;
+      }
+
+      .toggle-switch {
+        width: 32px;
+        height: 18px;
+        background: #ccc;
+        border-radius: 9px;
+        position: relative;
+        margin-right: 6px;
+        transition: background 0.2s;
+      }
+
+      .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        background: white;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        transition: left 0.2s;
+      }
+
+      .auto-refresh-toggle input:checked + .toggle-switch {
+        background: #4caf50;
+      }
+
+      .auto-refresh-toggle input:checked + .toggle-switch::after {
+        left: 16px;
+      }
     </style>
   </head>
   <body>
@@ -320,6 +370,9 @@
           let pubkey =
             new URLSearchParams(window.location.search).get('pubkey') ||
             '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746'
+
+          // Check if auto-refresh is enabled via query param
+          this.autoRefreshEnabled = new URLSearchParams(window.location.search).get('refresh') === '1'
 
           console.log(relay)
 
@@ -444,6 +497,19 @@
           } catch (e) {
             console.error('Error creating socket:', e)
           }
+        }
+
+        toggleAutoRefresh = () => {
+          const url = new URL(window.location.href)
+          if (this.autoRefreshEnabled) {
+            // Turn off - remove refresh param
+            url.searchParams.delete('refresh')
+          } else {
+            // Turn on - add refresh param
+            url.searchParams.set('refresh', '1')
+          }
+          // Navigate to new URL (will reload with/without meta refresh)
+          window.location.href = url.toString()
         }
 
         setupSocketHandlers(socket) {
@@ -826,6 +892,15 @@
                     state.isConnected ? 'connected' : 'disconnected'
                   }`}
                 ></span>
+                <label class="auto-refresh-toggle" title="Auto-refresh every 5 minutes">
+                  <input
+                    type="checkbox"
+                    checked=${this.autoRefreshEnabled}
+                    onchange=${this.toggleAutoRefresh}
+                  />
+                  <span class="toggle-switch"></span>
+                  5m
+                </label>
               </h2>
               ${!state.audioEnabled &&
               html`
