@@ -65,6 +65,25 @@
         transition: all 0.3s ease;
       }
 
+      @keyframes shimmer {
+        0% {
+          transform: scale(1);
+          box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+        }
+        50% {
+          transform: scale(1.15);
+          box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+        }
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 rgba(255, 255, 255, 0);
+        }
+      }
+
+      .bubble.updated {
+        animation: shimmer 0.8s ease-out;
+      }
+
       #status {
         text-align: center;
         font-size: 12px;
@@ -107,6 +126,7 @@
 
       // Data structure: { "YYYYMMDDHH": { work: 500, chores: 100, bots: 10 } }
       let hourlyData = {}
+      let lastUpdatedHour = null
 
       // Load from localStorage
       function loadFromStorage() {
@@ -194,6 +214,14 @@
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
         const heatmapData = aggregateHeatmap()
 
+        // Get day/hour of last updated cell
+        let updatedDay = null, updatedHour = null
+        if (lastUpdatedHour) {
+          const parsed = parseHourKey(lastUpdatedHour)
+          updatedDay = parsed.dayOfWeek
+          updatedHour = parsed.hour
+        }
+
         // Top-left corner (empty)
         const corner = document.createElement('div')
         container.appendChild(corner)
@@ -239,6 +267,13 @@
             bubble.style.backgroundColor = points > 0 ? getColor(points) : '#333'
             bubble.title = `${days[day]} ${String(hour).padStart(2, '0')}:00 - ${points.toLocaleString()} pts`
 
+            // Add shimmer animation if this cell was just updated
+            if (day === updatedDay && hour === updatedHour) {
+              bubble.classList.add('updated')
+              // Remove class after animation completes
+              setTimeout(() => bubble.classList.remove('updated'), 800)
+            }
+
             cell.appendChild(bubble)
             container.appendChild(cell)
           }
@@ -280,6 +315,7 @@
 
           // Store complete hour data
           hourlyData[hourKey] = content
+          lastUpdatedHour = hourKey
 
           saveToStorage()
           updateWeeklyTotal()
