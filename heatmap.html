@@ -129,6 +129,20 @@
         border: 2px solid gold;
       }
 
+      @keyframes silverGlow {
+        0%, 100% {
+          box-shadow: 0 0 20px rgba(192, 192, 192, 0.6);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(220, 220, 220, 0.9);
+        }
+      }
+
+      .bubble.best-regular {
+        animation: silverGlow 2.5s ease-in-out infinite;
+        border: 2px solid silver;
+      }
+
       #status {
         text-align: center;
         font-size: 12px;
@@ -385,6 +399,13 @@
           }
         }
 
+        // Find the best non-ranked bubble (rank #11 - highest outside top 10)
+        let bestRegularCell = null
+        if (allHours.length > 10) {
+          const rank11 = allHours[10] // 0-indexed, so [10] is rank 11
+          bestRegularCell = `${rank11.day}-${rank11.hour}`
+        }
+
         // Top-left corner (empty)
         const corner = document.createElement('div')
         container.appendChild(corner)
@@ -483,6 +504,11 @@
             const cellKey = `${day}-${hour}`
             if (targetCell && cellKey === targetCell) {
               bubble.classList.add('next-target')
+            }
+
+            // Highlight best non-ranked bubble (silver glow)
+            if (bestRegularCell && cellKey === bestRegularCell) {
+              bubble.classList.add('best-regular')
             }
 
             cell.appendChild(bubble)
