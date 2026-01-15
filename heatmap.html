@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gamestr Heatmap - 7 Day Activity</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #1a1a1a;
+        color: #fff;
+        padding: 20px;
+        overflow: hidden;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 24px;
+      }
+
+      #heatmap {
+        display: grid;
+        grid-template-columns: auto repeat(24, 1fr);
+        grid-template-rows: auto repeat(7, 1fr);
+        gap: 2px;
+        height: calc(100vh - 100px);
+        width: 100%;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: #999;
+      }
+
+      .day-label {
+        padding-right: 10px;
+        text-align: right;
+        font-size: 14px;
+        color: #999;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+      }
+
+      .cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .bubble {
+        border-radius: 50%;
+        transition: all 0.3s ease;
+      }
+
+      .legend {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px;
+        border-radius: 10px;
+        font-size: 12px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin: 5px 0;
+      }
+
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+
+      #status {
+        text-align: center;
+        font-size: 12px;
+        color: #666;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Gamestr Activity Heatmap - Last 7 Days</h1>
+    <div style="text-align: center; margin-bottom: 10px;">
+      <a href="index.html" style="color: #36A2EB; text-decoration: none; font-size: 14px;">
+        ← Back to Dashboard
+      </a>
+    </div>
+    <div id="heatmap"></div>
+    <div id="status">Connecting to Nostr...</div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: hsl(120, 70%, 50%)"></div>
+        <span>Low activity</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: hsl(60, 70%, 50%)"></div>
+        <span>Medium activity</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: hsl(0, 70%, 50%)"></div>
+        <span>High activity (200k+ pts)</span>
+      </div>
+    </div>
+
+    <script>
+      console.log('=== HEATMAP SCRIPT LOADED ===')
+      const RELAY_URL = 'wss://nostr.rocks:4444/'
+      const PUBKEY = '64401c0577261886bff71b49f22fb35225268f27313fb5af7d5eda7934574746'
+      const MAX_POINTS = 200000
+      const STORAGE_KEY = 'gamestr_hourly_data'
+
+      // Data structure: { "YYYYMMDDHH": { work: 500, chores: 100, bots: 10 } }
+      let hourlyData = {}
+
+      // Load from localStorage
+      function loadFromStorage() {
+        const stored = localStorage.getItem(STORAGE_KEY)
+        if (stored) {
+          hourlyData = JSON.parse(stored)
+          pruneOldData()
+        }
+      }
+
+      // Save to localStorage
+      function saveToStorage() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(hourlyData))
+      }
+
+      // Prune data older than 7 days
+      function pruneOldData() {
+        const now = new Date()
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        const cutoff = formatHourKey(sevenDaysAgo)
+
+        for (const key in hourlyData) {
+          if (key < cutoff) {
+            delete hourlyData[key]
+          }
+        }
+        saveToStorage()
+      }
+
+      // Format date to YYYYMMDDHH
+      function formatHourKey(date) {
+        const y = date.getUTCFullYear()
+        const m = String(date.getUTCMonth() + 1).padStart(2, '0')
+        const d = String(date.getUTCDate()).padStart(2, '0')
+        const h = String(date.getUTCHours()).padStart(2, '0')
+        return `${y}${m}${d}${h}`
+      }
+
+      // Parse hour key to get day-of-week and hour
+      function parseHourKey(key) {
+        const y = parseInt(key.substring(0, 4))
+        const m = parseInt(key.substring(4, 6)) - 1
+        const d = parseInt(key.substring(6, 8))
+        const h = parseInt(key.substring(8, 10))
+        const date = new Date(Date.UTC(y, m, d, h))
+        return {
+          dayOfWeek: date.getUTCDay(), // 0=Sunday
+          hour: h
+        }
+      }
+
+      // Aggregate data for heatmap (7 days × 24 hours)
+      function aggregateHeatmap() {
+        const heatmap = Array(7).fill(0).map(() => Array(24).fill(0))
+
+        for (const [key, categories] of Object.entries(hourlyData)) {
+          const { dayOfWeek, hour } = parseHourKey(key)
+          const total = Object.values(categories).reduce((sum, pts) => sum + pts, 0)
+          heatmap[dayOfWeek][hour] += total
+        }
+
+        return heatmap
+      }
+
+      // Calculate bubble size (radius) based on points
+      function getRadius(points, maxSize) {
+        const ratio = Math.min(points / MAX_POINTS, 1)
+        const minRadius = maxSize * 0.15
+        const maxRadius = maxSize * 0.45
+        return minRadius + ratio * (maxRadius - minRadius)
+      }
+
+      // Calculate color based on points (green → yellow → red)
+      function getColor(points) {
+        const ratio = Math.min(points / MAX_POINTS, 1)
+        const hue = 120 - ratio * 120 // 120 (green) to 0 (red)
+        return `hsl(${hue}, 70%, 50%)`
+      }
+
+      // Render heatmap grid
+      function renderHeatmap() {
+        const container = document.getElementById('heatmap')
+        container.innerHTML = ''
+
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        const heatmapData = aggregateHeatmap()
+
+        // Top-left corner (empty)
+        const corner = document.createElement('div')
+        container.appendChild(corner)
+
+        // Hour headers (0-23)
+        for (let h = 0; h < 24; h++) {
+          const header = document.createElement('div')
+          header.className = 'header'
+          header.textContent = String(h).padStart(2, '0')
+          container.appendChild(header)
+        }
+
+        // Day rows
+        for (let day = 0; day < 7; day++) {
+          // Day label
+          const label = document.createElement('div')
+          label.className = 'day-label'
+          label.textContent = days[day]
+          container.appendChild(label)
+
+          // Hour cells
+          for (let hour = 0; hour < 24; hour++) {
+            const cell = document.createElement('div')
+            cell.className = 'cell'
+
+            const points = heatmapData[day][hour]
+            const cellRect = { width: window.innerWidth / 25, height: (window.innerHeight - 100) / 8 }
+            const maxSize = Math.min(cellRect.width, cellRect.height)
+
+            const bubble = document.createElement('div')
+            bubble.className = 'bubble'
+            const radius = getRadius(points, maxSize)
+            bubble.style.width = `${radius * 2}px`
+            bubble.style.height = `${radius * 2}px`
+            bubble.style.backgroundColor = points > 0 ? getColor(points) : '#333'
+            bubble.title = `${days[day]} ${String(hour).padStart(2, '0')}:00 - ${points.toLocaleString()} pts`
+
+            cell.appendChild(bubble)
+            container.appendChild(cell)
+          }
+        }
+      }
+
+      // Process Nostr event (same as index.html)
+      function processEvent(event) {
+        try {
+          const timestamp = event.created_at * 1000
+          const date = new Date(timestamp)
+          const hourKey = formatHourKey(date)
+
+          // Parse content - it's an object like { work: 500, chores: 100, bots: 55000 }
+          const content = JSON.parse(event.content)
+
+          console.log(`Received event for ${hourKey}:`, content)
+
+          // Store complete hour data
+          hourlyData[hourKey] = content
+
+          saveToStorage()
+          renderHeatmap()
+        } catch (err) {
+          console.error('Error processing event:', err, event)
+        }
+      }
+
+      // Connect to Nostr
+      function connectNostr() {
+        const ws = new WebSocket(RELAY_URL)
+
+        ws.addEventListener('open', () => {
+          console.log('Connected to Nostr relay')
+          document.getElementById('status').textContent = 'Connected to Nostr'
+
+          // Subscribe to kind 33334 events (same format as index.html)
+          const req = `["REQ", "gamestr", {"kinds":[33334], "authors": ["${PUBKEY}"]}]`
+          console.log('Sending REQ:', req)
+          ws.send(req)
+        })
+
+        ws.addEventListener('message', (msg) => {
+          try {
+            const [type, subId, event] = JSON.parse(msg.data)
+            if (type === 'EVENT' && event) {
+              console.log('Received event:', event.created_at, event.content)
+              processEvent(event)
+            } else if (type === 'EOSE') {
+              console.log('Initial sync complete, total events:', Object.keys(hourlyData).length)
+              document.getElementById('status').textContent = `Live sync active (${Object.keys(hourlyData).length} hours loaded)`
+            }
+          } catch (err) {
+            console.error('Error parsing message:', err)
+          }
+        })
+
+        ws.addEventListener('error', (err) => {
+          console.error('WebSocket error:', err)
+          document.getElementById('status').textContent = 'Connection error'
+        })
+
+        ws.addEventListener('close', () => {
+          console.log('Disconnected, reconnecting in 5s...')
+          document.getElementById('status').textContent = 'Reconnecting...'
+          setTimeout(connectNostr, 5000)
+        })
+      }
+
+      // Initialize
+      loadFromStorage()
+      renderHeatmap()
+      connectNostr()
+
+      // Re-render on window resize
+      window.addEventListener('resize', renderHeatmap)
+    </script>
+  </body>
+</html>
