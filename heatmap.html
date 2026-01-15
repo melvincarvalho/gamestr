@@ -398,7 +398,8 @@
           // Daily total
           const totalCell = document.createElement('div')
           totalCell.className = 'daily-total'
-          totalCell.textContent = dayTotal.toLocaleString()
+          const totalK = Math.round(dayTotal / 1000)
+          totalCell.textContent = totalK > 0 ? `${totalK.toLocaleString()}k` : '0'
           container.appendChild(totalCell)
         }
       }
