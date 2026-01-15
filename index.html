@@ -928,13 +928,13 @@
                   <span class="toggle-switch"></span>
                   5m
                 </label>
+                ${!state.audioEnabled &&
+                html`
+                  <button onclick=${this.enableAudio} style="margin: 0 0 0 12px; padding: 6px 12px; font-size: 14px;">
+                    🔊 Sound
+                  </button>
+                `}
               </h2>
-              ${!state.audioEnabled &&
-              html`
-                <button onclick=${this.enableAudio}>
-                  Enable Sound Effects
-                </button>
-              `}
               <div id="dashboard">
                 ${sortedKeys.map(key => {
                   const totalPoints = parseInt(state.content[key])
