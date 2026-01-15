@@ -400,8 +400,9 @@
         }
 
         // Find the best non-ranked bubble (rank #11 - highest outside top 10)
+        // Only show this if current hour is NOT in top 10
         let bestRegularCell = null
-        if (allHours.length > 10) {
+        if (allHours.length > 10 && !currentRank) {
           const rank11 = allHours[10] // 0-indexed, so [10] is rank 11
           bestRegularCell = `${rank11.day}-${rank11.hour}`
         }
