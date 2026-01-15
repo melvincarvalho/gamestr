@@ -63,6 +63,13 @@
       .bubble {
         border-radius: 50%;
         transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 900;
+        color: white;
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
       }
 
       @keyframes shimmer {
@@ -266,6 +273,12 @@
             bubble.style.height = `${radius * 2}px`
             bubble.style.backgroundColor = points > 0 ? getColor(points) : '#333'
             bubble.title = `${days[day]} ${String(hour).padStart(2, '0')}:00 - ${points.toLocaleString()} pts`
+
+            // Add text showing thousands of points
+            if (points > 0) {
+              const thousands = Math.round(points / 1000)
+              bubble.textContent = thousands > 0 ? thousands : ''
+            }
 
             // Add shimmer animation if this cell was just updated
             if (day === updatedDay && hour === updatedHour) {
