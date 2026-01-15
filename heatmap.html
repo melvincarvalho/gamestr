@@ -60,6 +60,12 @@
         position: relative;
       }
 
+      .cell.current-hour-cell {
+        background: rgba(54, 162, 235, 0.15);
+        border: 2px solid #36A2EB;
+        border-radius: 8px;
+      }
+
       .bubble {
         border-radius: 50%;
         transition: all 0.3s ease;
@@ -317,6 +323,11 @@
           for (let hour = 0; hour < 24; hour++) {
             const cell = document.createElement('div')
             cell.className = 'cell'
+
+            // Highlight current hour cell
+            if (day === currentDay && hour === currentHour) {
+              cell.classList.add('current-hour-cell')
+            }
 
             const points = heatmapData[day][hour]
             dayTotal += points
