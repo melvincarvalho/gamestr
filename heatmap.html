@@ -115,6 +115,20 @@
         animation: pulse 2s ease-in-out infinite;
       }
 
+      @keyframes targetGlow {
+        0%, 100% {
+          box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(255, 215, 0, 0.9);
+        }
+      }
+
+      .bubble.next-target {
+        animation: targetGlow 2.5s ease-in-out infinite;
+        border: 2px solid gold;
+      }
+
       #status {
         text-align: center;
         font-size: 12px;
@@ -344,6 +358,33 @@
           topHours.set(key, index + 1) // rank 1-10
         })
 
+        // Determine next target for gamification
+        const currentHourKey = `${currentDay}-${currentHour}`
+        const currentRank = topHours.get(currentHourKey)
+        let targetRank = null
+
+        if (currentRank) {
+          // Current hour is in top 10, target next higher rank
+          if (currentRank > 1) {
+            targetRank = currentRank - 1
+          }
+          // If rank 1, no target (already at top!)
+        } else {
+          // Not in top 10, target is #10 (get on the board)
+          targetRank = 10
+        }
+
+        // Find the cell with the target rank
+        let targetCell = null
+        if (targetRank) {
+          for (const [key, rank] of topHours.entries()) {
+            if (rank === targetRank) {
+              targetCell = key
+              break
+            }
+          }
+        }
+
         // Top-left corner (empty)
         const corner = document.createElement('div')
         container.appendChild(corner)
@@ -416,7 +457,10 @@
                 if (rank === 1) badge = '🥇'
                 else if (rank === 2) badge = '🥈'
                 else if (rank === 3) badge = '🥉'
-                else badge = '⭐'
+                else if (rank === 4) badge = '💎'
+                else if (rank === 5) badge = '🔥'
+                else if (rank === 6) badge = '⚡'
+                else badge = '⭐' // ranks 7-10
                 text = `${badge}${text}`
               }
 
@@ -433,6 +477,12 @@
             // Highlight current hour
             if (day === currentDay && hour === currentHour) {
               bubble.classList.add('current-hour')
+            }
+
+            // Highlight next target
+            const cellKey = `${day}-${hour}`
+            if (targetCell && cellKey === targetCell) {
+              bubble.classList.add('next-target')
             }
 
             cell.appendChild(bubble)
