@@ -271,6 +271,29 @@
         return `hsl(${hue}, 70%, 50%)`
       }
 
+      // Get gradient with depth for iPhone-like quality
+      function getGradient(points) {
+        const ratio = Math.min(points / MAX_POINTS, 1)
+        const hue = 120 - ratio * 120
+        // Radial gradient: lighter in center, darker at edges
+        return `radial-gradient(circle at 35% 35%,
+          hsl(${hue}, 70%, 65%) 0%,
+          hsl(${hue}, 70%, 55%) 40%,
+          hsl(${hue}, 70%, 45%) 100%)`
+      }
+
+      // Get layered shadows for depth
+      function getBoxShadow(points) {
+        if (points === 0) return 'none'
+        const ratio = Math.min(points / MAX_POINTS, 1)
+        const intensity = 0.3 + (ratio * 0.4)
+        return `
+          0 1px 2px rgba(0, 0, 0, ${intensity * 0.3}),
+          0 2px 8px rgba(0, 0, 0, ${intensity * 0.2}),
+          inset 0 1px 1px rgba(255, 255, 255, 0.3)
+        `
+      }
+
       // Render heatmap grid
       function renderHeatmap() {
         const container = document.getElementById('heatmap')
@@ -339,7 +362,15 @@
             const radius = getRadius(points, maxSize)
             bubble.style.width = `${radius * 2}px`
             bubble.style.height = `${radius * 2}px`
-            bubble.style.backgroundColor = points > 0 ? getColor(points) : '#333'
+
+            // Apply gradient and layered shadows for depth
+            if (points > 0) {
+              bubble.style.background = getGradient(points)
+              bubble.style.boxShadow = getBoxShadow(points)
+            } else {
+              bubble.style.backgroundColor = '#333'
+            }
+
             bubble.title = `${days[day]} ${String(hour).padStart(2, '0')}:00 - ${points.toLocaleString()} pts`
 
             // Add text showing thousands of points
