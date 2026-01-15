@@ -27,7 +27,7 @@
 
       #heatmap {
         display: grid;
-        grid-template-columns: auto repeat(24, 1fr);
+        grid-template-columns: auto repeat(24, 1fr) auto;
         grid-template-rows: auto repeat(7, 1fr);
         gap: 2px;
         height: calc(100vh - 100px);
@@ -93,6 +93,21 @@
         font-size: 12px;
         color: #666;
         margin-top: 10px;
+      }
+
+      .daily-total {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        color: #fff;
+        font-weight: bold;
+        padding-left: 10px;
+      }
+
+      .weekly-total {
+        color: #36A2EB;
+        font-weight: bold;
       }
     </style>
   </head>
@@ -229,6 +244,12 @@
           container.appendChild(header)
         }
 
+        // Total header
+        const totalHeader = document.createElement('div')
+        totalHeader.className = 'header'
+        totalHeader.textContent = 'Total'
+        container.appendChild(totalHeader)
+
         // Day rows
         for (let day = 0; day < 7; day++) {
           // Day label
@@ -238,12 +259,14 @@
           container.appendChild(label)
 
           // Hour cells
+          let dayTotal = 0
           for (let hour = 0; hour < 24; hour++) {
             const cell = document.createElement('div')
             cell.className = 'cell'
 
             const points = heatmapData[day][hour]
-            const cellRect = { width: window.innerWidth / 25, height: (window.innerHeight - 100) / 8 }
+            dayTotal += points
+            const cellRect = { width: window.innerWidth / 26, height: (window.innerHeight - 100) / 8 }
             const maxSize = Math.min(cellRect.width, cellRect.height)
 
             const bubble = document.createElement('div')
@@ -257,6 +280,27 @@
             cell.appendChild(bubble)
             container.appendChild(cell)
           }
+
+          // Daily total
+          const totalCell = document.createElement('div')
+          totalCell.className = 'daily-total'
+          totalCell.textContent = dayTotal.toLocaleString()
+          container.appendChild(totalCell)
+        }
+      }
+
+      // Update title with weekly total
+      function updateWeeklyTotal() {
+        const heatmapData = aggregateHeatmap()
+        const weeklyTotal = heatmapData.reduce((sum, dayData) => {
+          return sum + dayData.reduce((daySum, points) => daySum + points, 0)
+        }, 0)
+
+        const title = document.querySelector('h1')
+        if (weeklyTotal > 0) {
+          title.innerHTML = `Gamestr Activity Heatmap - Last 7 Days <span class="weekly-total">(${weeklyTotal.toLocaleString()} pts)</span>`
+        } else {
+          title.textContent = 'Gamestr Activity Heatmap - Last 7 Days'
         }
       }
 
@@ -276,6 +320,7 @@
           hourlyData[hourKey] = content
 
           saveToStorage()
+          updateWeeklyTotal()
           renderHeatmap()
         } catch (err) {
           console.error('Error processing event:', err, event)
@@ -325,11 +370,15 @@
 
       // Initialize
       loadFromStorage()
+      updateWeeklyTotal()
       renderHeatmap()
       connectNostr()
 
       // Re-render on window resize
-      window.addEventListener('resize', renderHeatmap)
+      window.addEventListener('resize', () => {
+        updateWeeklyTotal()
+        renderHeatmap()
+      })
     </script>
   </body>
 </html>
