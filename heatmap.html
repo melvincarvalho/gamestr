@@ -91,6 +91,24 @@
         animation: shimmer 0.8s ease-out;
       }
 
+      .bubble.current-hour {
+        border: 3px solid #36A2EB;
+        box-shadow: 0 0 15px rgba(54, 162, 235, 0.6);
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          box-shadow: 0 0 15px rgba(54, 162, 235, 0.6);
+        }
+        50% {
+          box-shadow: 0 0 25px rgba(54, 162, 235, 0.9);
+        }
+      }
+
+      .bubble.current-hour {
+        animation: pulse 2s ease-in-out infinite;
+      }
+
       #status {
         text-align: center;
         font-size: 12px;
@@ -255,6 +273,11 @@
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
         const heatmapData = aggregateHeatmap()
 
+        // Get current hour (UTC)
+        const now = new Date()
+        const currentDay = now.getUTCDay()
+        const currentHour = now.getUTCHours()
+
         // Get day/hour of last updated cell
         let updatedDay = null, updatedHour = null
         if (lastUpdatedHour) {
@@ -319,6 +342,11 @@
               bubble.classList.add('updated')
               // Remove class after animation completes
               setTimeout(() => bubble.classList.remove('updated'), 800)
+            }
+
+            // Highlight current hour
+            if (day === currentDay && hour === currentHour) {
+              bubble.classList.add('current-hour')
             }
 
             cell.appendChild(bubble)
