@@ -326,6 +326,24 @@
           updatedHour = parsed.hour
         }
 
+        // Calculate top 10 hours for badges
+        const allHours = []
+        for (let day = 0; day < 7; day++) {
+          for (let hour = 0; hour < 24; hour++) {
+            const points = heatmapData[day][hour]
+            if (points > 0) {
+              allHours.push({ day, hour, points })
+            }
+          }
+        }
+        // Sort by points descending and take top 10
+        allHours.sort((a, b) => b.points - a.points)
+        const topHours = new Map()
+        allHours.slice(0, 10).forEach((item, index) => {
+          const key = `${item.day}-${item.hour}`
+          topHours.set(key, index + 1) // rank 1-10
+        })
+
         // Top-left corner (empty)
         const corner = document.createElement('div')
         container.appendChild(corner)
@@ -387,7 +405,22 @@
             // Add text showing thousands of points
             if (points > 0) {
               const thousands = Math.round(points / 1000)
-              bubble.textContent = thousands > 0 ? thousands : ''
+              const cellKey = `${day}-${hour}`
+              const rank = topHours.get(cellKey)
+
+              let text = thousands > 0 ? thousands : ''
+
+              // Add badge emoji for top 10 hours
+              if (rank) {
+                let badge = ''
+                if (rank === 1) badge = '🥇'
+                else if (rank === 2) badge = '🥈'
+                else if (rank === 3) badge = '🥉'
+                else badge = '⭐'
+                text = `${badge}${text}`
+              }
+
+              bubble.textContent = text
             }
 
             // Add shimmer animation if this cell was just updated
