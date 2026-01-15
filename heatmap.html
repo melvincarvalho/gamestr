@@ -134,6 +134,7 @@
       // Data structure: { "YYYYMMDDHH": { work: 500, chores: 100, bots: 10 } }
       let hourlyData = {}
       let lastUpdatedHour = null
+      const IMPORT_FLAG_KEY = 'gamestr_week_imported'
 
       // Load from localStorage
       function loadFromStorage() {
@@ -161,6 +162,39 @@
           }
         }
         saveToStorage()
+      }
+
+      // Import week.json data (one-time via ?import=1)
+      async function importWeekData() {
+        const urlParams = new URLSearchParams(window.location.search)
+        const shouldImport = urlParams.get('import') === '1'
+        const alreadyImported = localStorage.getItem(IMPORT_FLAG_KEY)
+
+        if (shouldImport && !alreadyImported) {
+          try {
+            document.getElementById('status').textContent = 'Importing historical data...'
+            const response = await fetch('week.json')
+            if (!response.ok) {
+              throw new Error('Failed to fetch week.json')
+            }
+            const weekData = await response.json()
+
+            // Merge with existing data (weekData takes precedence)
+            hourlyData = { ...hourlyData, ...weekData }
+
+            saveToStorage()
+            localStorage.setItem(IMPORT_FLAG_KEY, 'true')
+
+            console.log(`Imported ${Object.keys(weekData).length} hours from week.json`)
+            document.getElementById('status').textContent = `Imported ${Object.keys(weekData).length} hours of historical data`
+
+            updateWeeklyTotal()
+            renderHeatmap()
+          } catch (err) {
+            console.error('Error importing week data:', err)
+            document.getElementById('status').textContent = 'Error importing data'
+          }
+        }
       }
 
       // Format date to YYYYMMDDHH
@@ -380,10 +414,15 @@
       }
 
       // Initialize
-      loadFromStorage()
-      updateWeeklyTotal()
-      renderHeatmap()
-      connectNostr()
+      async function init() {
+        loadFromStorage()
+        await importWeekData()  // Import historical data if ?import=1
+        updateWeeklyTotal()
+        renderHeatmap()
+        connectNostr()
+      }
+
+      init()
 
       // Re-render on window resize
       window.addEventListener('resize', () => {
