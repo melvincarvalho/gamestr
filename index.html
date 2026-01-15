@@ -328,20 +328,49 @@
       import { html, render, Component } from './js/standalone.module.js'
 
       const colorPalette = [
-        '#FF6384',
-        '#36A2EB',
-        '#FFCE56',
-        '#4BC0C0',
-        '#9966FF',
-        '#FF9F40',
-        '#E1396C',
-        '#D9DD39',
-        '#40D879',
-        '#39A2D9'
+        '#FFCE56', // 0 - Yellow (bots)
+        '#FF6384', // 1 - Pink (chores)
+        '#36A2EB', // 2 - Blue (work)
+        '#4BC0C0', // 3 - Teal
+        '#9966FF', // 4 - Purple
+        '#FF9F40', // 5 - Orange
+        '#E1396C', // 6 - Red
+        '#D9DD39', // 7 - Lime
+        '#40D879', // 8 - Green
+        '#39A2D9'  // 9 - Sky blue
       ]
 
-      let labelColorMapping = {}
-      let currentColorIndex = 0 // Define currentColorIndex here
+      // Deterministic color assignment
+      // Known categories get specific colors, new ones get hashed to a color
+      const knownCategories = {
+        'bots': '#FFCE56',   // Yellow
+        'chores': '#FF6384', // Pink
+        'work': '#36A2EB'    // Blue
+      }
+
+      let labelColorMapping = {} // Will be populated deterministically
+
+      function hashString(str) {
+        let hash = 0
+        for (let i = 0; i < str.length; i++) {
+          hash = ((hash << 5) - hash) + str.charCodeAt(i)
+          hash = hash & hash
+        }
+        return Math.abs(hash)
+      }
+
+      function getColorForCategory(category) {
+        // Use predefined color for known categories
+        if (knownCategories[category]) {
+          return knownCategories[category]
+        }
+
+        // For unknown categories, hash to pick from remaining colors
+        const hash = hashString(category)
+        // Start from index 3 (after the 3 known categories)
+        const index = 3 + (hash % (colorPalette.length - 3))
+        return colorPalette[index]
+      }
 
       class App extends Component {
         constructor() {
@@ -669,9 +698,7 @@
             total += totalPoints
 
             if (!labelColorMapping[key]) {
-              labelColorMapping[key] =
-                colorPalette[currentColorIndex % colorPalette.length]
-              currentColorIndex++
+              labelColorMapping[key] = getColorForCategory(key)
             }
 
             // Calculate new level based on points
