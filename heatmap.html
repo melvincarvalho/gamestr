@@ -246,11 +246,22 @@
       // Aggregate data for heatmap (7 days × 24 hours)
       function aggregateHeatmap() {
         const heatmap = Array(7).fill(0).map(() => Array(24).fill(0))
+        const latestHour = {}
 
-        for (const [key, categories] of Object.entries(hourlyData)) {
+        // Sort hourKeys descending (most recent first)
+        const sortedKeys = Object.keys(hourlyData).sort().reverse()
+
+        for (const key of sortedKeys) {
           const { dayOfWeek, hour } = parseHourKey(key)
-          const total = Object.values(categories).reduce((sum, pts) => sum + pts, 0)
-          heatmap[dayOfWeek][hour] += total
+          const cellKey = `${dayOfWeek}-${hour}`
+
+          // Only use the most recent hourKey for each day/hour cell
+          if (!latestHour[cellKey]) {
+            const categories = hourlyData[key]
+            const total = Object.values(categories).reduce((sum, pts) => sum + pts, 0)
+            heatmap[dayOfWeek][hour] = total
+            latestHour[cellKey] = key
+          }
         }
 
         return heatmap
