@@ -261,8 +261,28 @@
         background-color: #4caf50;
       }
 
+      .connection-status.degraded {
+        background-color: #ff9800; /* Orange - zombie warning */
+      }
+
       .connection-status.disconnected {
         background-color: #f44336;
+      }
+
+      .connection-health {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 0.5em;
+        color: #666;
+        letter-spacing: 1px;
+      }
+
+      .connection-time {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: 0.6em;
+        color: #999;
+        min-width: 30px;
       }
 
       .auto-refresh-toggle {
@@ -416,6 +436,8 @@
             content: {},
             audioEnabled: false,
             isConnected: false,
+            connectionQuality: 'good', // good, degraded, stale
+            timeSinceMessage: '0s',
             relay: relay
           }
 
@@ -506,9 +528,44 @@
           }
           window.addEventListener('focus', this.handleFocus)
 
+          // Connection quality monitor - updates every second
+          this.qualityMonitorInterval = setInterval(() => {
+            this.updateConnectionQuality()
+          }, 1000)
+
           setTimeout(() => {
             this.sendData()
           }, 500)
+        }
+
+        updateConnectionQuality = () => {
+          const timeSinceLastMessage = Date.now() - this.lastMessageTime
+          const seconds = Math.floor(timeSinceLastMessage / 1000)
+
+          // Format time display
+          let timeDisplay
+          if (seconds < 60) {
+            timeDisplay = `${seconds}s`
+          } else if (seconds < 3600) {
+            timeDisplay = `${Math.floor(seconds / 60)}m`
+          } else {
+            timeDisplay = `${Math.floor(seconds / 3600)}h`
+          }
+
+          // Determine connection quality
+          let quality
+          if (seconds < 30) {
+            quality = 'good'     // •••
+          } else if (seconds < 60) {
+            quality = 'degraded' // ••○
+          } else {
+            quality = 'stale'    // •○○
+          }
+
+          this.setState({
+            timeSinceMessage: timeDisplay,
+            connectionQuality: quality
+          })
         }
 
         // Simple reconnect - close old socket, create new one
@@ -928,6 +985,9 @@
           if (this.zombieCheckInterval) {
             clearInterval(this.zombieCheckInterval)
           }
+          if (this.qualityMonitorInterval) {
+            clearInterval(this.qualityMonitorInterval)
+          }
           if (this.updateDebounceTimer) {
             clearTimeout(this.updateDebounceTimer)
           }
@@ -960,9 +1020,15 @@
                 Gamestr
                 <span
                   class=${`connection-status ${
-                    state.isConnected ? 'connected' : 'disconnected'
+                    !state.isConnected ? 'disconnected' :
+                    state.connectionQuality === 'good' ? 'connected' : 'degraded'
                   }`}
                 ></span>
+                <span class="connection-health">
+                  ${state.connectionQuality === 'good' ? '•••' :
+                    state.connectionQuality === 'degraded' ? '••○' : '•○○'}
+                </span>
+                <span class="connection-time">${state.timeSinceMessage}</span>
                 <label class="auto-refresh-toggle" title="Auto-refresh every 5 minutes">
                   <input
                     type="checkbox"
