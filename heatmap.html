@@ -169,7 +169,7 @@
     </style>
   </head>
   <body>
-    <h1>Gamestr Activity Heatmap - Last 7 Days</h1>
+    <h1>Heatmap</h1>
     <div style="text-align: center; margin-bottom: 10px;">
       <a href="index.html" style="color: #36A2EB; text-decoration: none; font-size: 14px;">
         ← Back to Dashboard
@@ -538,18 +538,50 @@
         }
       }
 
-      // Update title with weekly total
+      // Update title with current hour stats
       function updateWeeklyTotal() {
         const heatmapData = aggregateHeatmap()
-        const weeklyTotal = heatmapData.reduce((sum, dayData) => {
-          return sum + dayData.reduce((daySum, points) => daySum + points, 0)
-        }, 0)
+        const now = new Date()
+        const currentDay = now.getUTCDay()
+        const currentHour = now.getUTCHours()
+        const currentPoints = heatmapData[currentDay][currentHour]
+
+        // Get all non-zero bubbles and sort by points
+        const allHours = []
+        for (let day = 0; day < 7; day++) {
+          for (let hour = 0; hour < 24; hour++) {
+            const points = heatmapData[day][hour]
+            if (points > 0) {
+              allHours.push({ day, hour, points })
+            }
+          }
+        }
+        allHours.sort((a, b) => b.points - a.points)
+
+        // Find current hour rank
+        let currentRank = 0
+        for (let i = 0; i < allHours.length; i++) {
+          if (allHours[i].day === currentDay && allHours[i].hour === currentHour) {
+            currentRank = i + 1
+            break
+          }
+        }
+
+        // Find next target (first bubble above current points)
+        let nextTarget = 0
+        for (const bubble of allHours) {
+          if (bubble.points > currentPoints) {
+            nextTarget = bubble.points
+          }
+        }
 
         const title = document.querySelector('h1')
-        if (weeklyTotal > 0) {
-          title.innerHTML = `Gamestr Activity Heatmap - Last 7 Days <span class="weekly-total">(${weeklyTotal.toLocaleString()} pts)</span>`
+        const totalBubbles = allHours.length
+
+        if (currentPoints > 0) {
+          title.innerHTML = `Heatmap - <span class="weekly-total">${currentPoints} pts - Rank #${currentRank}/${totalBubbles}</span>${nextTarget > 0 ? ` - <span class="weekly-total">Next: ${nextTarget} pts</span>` : ' - 🥇 Top!'}`
         } else {
-          title.textContent = 'Gamestr Activity Heatmap - Last 7 Days'
+          title.innerHTML = `Heatmap - <span class="weekly-total">0 pts - Unranked</span>${nextTarget > 0 ? ` - <span class="weekly-total">Next: ${nextTarget} pts</span>` : ''}`
         }
       }
 
