@@ -552,6 +552,13 @@
         }, 0)
         const weeklyK = Math.round(weeklyTotal / 1000)
 
+        // Calculate daily total (from hour 0 to current hour)
+        let dailyTotal = 0
+        for (let h = 0; h <= currentHour; h++) {
+          dailyTotal += heatmapData[currentDay][h]
+        }
+        const dailyK = Math.round(dailyTotal / 1000)
+
         // Get all non-zero bubbles and sort by points
         const allHours = []
         for (let day = 0; day < 7; day++) {
@@ -585,9 +592,9 @@
         const totalBubbles = allHours.length
 
         if (currentPoints > 0) {
-          title.innerHTML = `Heatmap <span class="weekly-total">(${weeklyK}k)</span> - <span class="weekly-total">${currentPoints} pts - Rank #${currentRank}/${totalBubbles}</span>${nextTarget > 0 ? ` - <span class="weekly-total">Next: ${nextTarget} pts</span>` : ' - 🥇 Top!'}`
+          title.innerHTML = `Heatmap <span class="weekly-total">(${weeklyK}k)</span> - <span class="weekly-total">Today: ${dailyK}k</span> - <span class="weekly-total">${currentPoints} pts - Rank #${currentRank}/${totalBubbles}</span>${nextTarget > 0 ? ` - <span class="weekly-total">Next: ${nextTarget} pts</span>` : ' - 🥇 Top!'}`
         } else {
-          title.innerHTML = `Heatmap <span class="weekly-total">(${weeklyK}k)</span> - <span class="weekly-total">0 pts - Unranked</span>${nextTarget > 0 ? ` - <span class="weekly-total">Next: ${nextTarget} pts</span>` : ''}`
+          title.innerHTML = `Heatmap <span class="weekly-total">(${weeklyK}k)</span> - <span class="weekly-total">Today: ${dailyK}k</span> - <span class="weekly-total">0 pts - Unranked</span>${nextTarget > 0 ? ` - <span class="weekly-total">Next: ${nextTarget} pts</span>` : ''}`
         }
       }
 
