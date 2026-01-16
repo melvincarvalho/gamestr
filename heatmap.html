@@ -131,16 +131,18 @@
 
       @keyframes silverGlow {
         0%, 100% {
-          box-shadow: 0 0 20px rgba(192, 192, 192, 0.6);
+          box-shadow: 0 0 25px rgba(255, 255, 255, 0.8),
+                      0 0 40px rgba(192, 192, 192, 0.5);
         }
         50% {
-          box-shadow: 0 0 30px rgba(220, 220, 220, 0.9);
+          box-shadow: 0 0 35px rgba(255, 255, 255, 1),
+                      0 0 50px rgba(220, 220, 220, 0.8);
         }
       }
 
       .bubble.best-regular {
         animation: silverGlow 2.5s ease-in-out infinite;
-        border: 2px solid silver;
+        border: 3px solid #E0E0E0;
       }
 
       #status {
@@ -399,12 +401,23 @@
           }
         }
 
-        // Find the best non-ranked bubble (rank #11 - highest outside top 10)
+        // Find the next highest bubble (progressive target)
         // Only show this if current hour is NOT in top 10
-        let bestRegularCell = null
-        if (allHours.length > 10 && !currentRank) {
-          const rank11 = allHours[10] // 0-indexed, so [10] is rank 11
-          bestRegularCell = `${rank11.day}-${rank11.hour}`
+        let nextHighestCell = null
+        if (!currentRank) {
+          const currentPoints = heatmapData[currentDay][currentHour]
+          // Find all bubbles with points greater than current, excluding top 10
+          const topHoursSet = new Set(topHours.keys())
+          const higherBubbles = allHours.filter(h => {
+            const key = `${h.day}-${h.hour}`
+            return h.points > currentPoints && !topHoursSet.has(key)
+          })
+          if (higherBubbles.length > 0) {
+            // Sort by points ascending, take the closest one above current
+            higherBubbles.sort((a, b) => a.points - b.points)
+            const nextHighest = higherBubbles[0]
+            nextHighestCell = `${nextHighest.day}-${nextHighest.hour}`
+          }
         }
 
         // Top-left corner (empty)
@@ -507,8 +520,8 @@
               bubble.classList.add('next-target')
             }
 
-            // Highlight best non-ranked bubble (silver glow)
-            if (bestRegularCell && cellKey === bestRegularCell) {
+            // Highlight next highest bubble (silver glow - progressive target)
+            if (nextHighestCell && cellKey === nextHighestCell) {
               bubble.classList.add('best-regular')
             }
 
