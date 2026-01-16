@@ -346,6 +346,7 @@
     <div id="app"></div>
     <script type="module">
       import { html, render, Component } from './js/standalone.module.js'
+      import ReconnectingWebSocket from 'https://cdn.jsdelivr.net/npm/reconnecting-websocket@4.4.0/dist/reconnecting-websocket.mjs'
 
       const colorPalette = [
         '#FFCE56', // 0 - Yellow (bots)
@@ -430,7 +431,14 @@
             total: 0,
             levels: {},
             pieChartData: [0, 0],
-            socket: new WebSocket(relay),
+            socket: new ReconnectingWebSocket(relay, [], {
+              maxReconnectionDelay: 30000,        // 30 seconds max
+              minReconnectionDelay: 500,          // Start at 500ms
+              reconnectionDelayGrowFactor: 1.5,   // Exponential growth
+              maxRetries: Infinity,               // Keep trying
+              connectionTimeout: 4000,            // 4 seconds to establish
+              debug: false
+            }),
             pubkey: pubkey,
             kind: 33334,
             content: {},
@@ -491,13 +499,9 @@
           this.handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
               console.log('Page hidden, closing socket...')
-              // Proactively close socket when backgrounded
+              // ReconnectingWebSocket.close() prevents automatic reconnection
               if (this.state.socket) {
                 try {
-                  this.state.socket.onmessage = null
-                  this.state.socket.onopen = null
-                  this.state.socket.onclose = null
-                  this.state.socket.onerror = null
                   this.state.socket.close()
                   this.setState({ isConnected: false })
                 } catch (e) {
@@ -506,7 +510,7 @@
               }
             } else if (document.visibilityState === 'visible') {
               console.log('Page visible, reconnecting...')
-              // Always reconnect when returning, don't check staleness
+              // Always reconnect when returning
               this.forceReconnect()
             }
           }
@@ -579,26 +583,13 @@
 
           console.log('Performing simple reconnect...')
 
-          // Close old socket
+          // Close old socket - ReconnectingWebSocket will automatically reconnect
           try {
             if (this.state.socket) {
-              this.state.socket.onmessage = null
-              this.state.socket.onopen = null
-              this.state.socket.onclose = null
-              this.state.socket.onerror = null
-              this.state.socket.close()
+              this.state.socket.reconnect()
             }
           } catch (e) {
-            console.error('Error closing socket:', e)
-          }
-
-          // Create new socket
-          try {
-            const newSocket = new WebSocket(this.state.relay)
-            this.setupSocketHandlers(newSocket)
-            this.setState({ socket: newSocket, isConnected: false })
-          } catch (e) {
-            console.error('Error creating socket:', e)
+            console.error('Error reconnecting socket:', e)
           }
         }
 
@@ -606,26 +597,13 @@
         forceReconnect = () => {
           console.log('Force reconnecting...')
 
-          // Close old socket
+          // ReconnectingWebSocket.reconnect() closes and reopens connection
           try {
             if (this.state.socket) {
-              this.state.socket.onmessage = null
-              this.state.socket.onopen = null
-              this.state.socket.onclose = null
-              this.state.socket.onerror = null
-              this.state.socket.close()
+              this.state.socket.reconnect()
             }
           } catch (e) {
-            console.error('Error closing socket:', e)
-          }
-
-          // Create new socket
-          try {
-            const newSocket = new WebSocket(this.state.relay)
-            this.setupSocketHandlers(newSocket)
-            this.setState({ socket: newSocket, isConnected: false })
-          } catch (e) {
-            console.error('Error creating socket:', e)
+            console.error('Error force reconnecting:', e)
           }
         }
 
@@ -901,79 +879,15 @@
         }
 
         reconnect() {
-          // Guard against concurrent reconnection attempts
-          if (this.isReconnecting) {
-            console.log('Reconnection already in progress, skipping')
-            return
-          }
-
-          // Check max attempts
-          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.log('Max reconnection attempts reached, waiting for next heartbeat cycle')
-            return
-          }
-
-          this.isReconnecting = true
-          this.reconnectAttempts++
-
+          // ReconnectingWebSocket handles reconnection with exponential backoff
+          // Just trigger a reconnection - the library handles retries, backoff, etc.
+          console.log('Triggering reconnection...')
           try {
-            // Clean up existing socket handlers before closing
             if (this.state.socket) {
-              this.state.socket.onmessage = null
-              this.state.socket.onopen = null
-              this.state.socket.onclose = null
-              this.state.socket.onerror = null
-              this.state.socket.close()
-            }
-
-            // Create new WebSocket connection
-            const newSocket = new WebSocket(this.state.relay)
-
-            // Set up event handlers using shared setup
-            newSocket.onmessage = event => {
-              try {
-                this.lastMessageTime = Date.now()
-                this.recoveryAttempts = 0  // Reset on successful message
-                let json = JSON.parse(event.data)
-                if (json && json[0] === 'EOSE') {
-                  return
-                }
-                if (!json[2] || !json[2].content) {
-                  console.warn('Malformed message received:', json)
-                  return
-                }
-                const content = JSON.parse(json[2].content)
-                this.debouncedUpdateDashboard(content)
-              } catch (e) {
-                console.error('Error processing message:', e)
-              }
-            }
-
-            newSocket.onopen = () => {
-              console.log('WebSocket reconnected')
-              this.lastMessageTime = Date.now()
-              this.isReconnecting = false
-              this.reconnectAttempts = 0  // Reset on successful connection
-              this.recoveryAttempts = 0   // Reset recovery attempts
-              this.setState({ isConnected: true, socket: newSocket })
-              this.sendData()
-            }
-
-            newSocket.onclose = () => {
-              console.log('WebSocket closed during reconnect')
-              this.isReconnecting = false
-              this.setState({ isConnected: false })
-            }
-
-            newSocket.onerror = (error) => {
-              console.error('WebSocket error during reconnect:', error)
-              this.isReconnecting = false
-              this.setState({ isConnected: false })
+              this.state.socket.reconnect()
             }
           } catch (error) {
-            console.error('Reconnection failed:', error)
-            this.isReconnecting = false
-            this.setState({ isConnected: false })
+            console.error('Reconnection trigger failed:', error)
           }
         }
 

@@ -19,5 +19,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "nostr-tools": "^2.19.4",
+    "reconnecting-websocket": "^4.4.0",
+    "ws": "^8.18.3"
   }
 }
