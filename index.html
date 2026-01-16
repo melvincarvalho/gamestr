@@ -464,20 +464,37 @@
             }
           }, 30000) // Check every 30 seconds
 
-          // Simple visibility change - just reconnect when page becomes visible
+          // Lifecycle-based connection management (per greenart7c3/Mempool strategy)
+          // Close socket when hidden, always reconnect when visible
           this.handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
+            if (document.visibilityState === 'hidden') {
+              console.log('Page hidden, closing socket...')
+              // Proactively close socket when backgrounded
+              if (this.state.socket) {
+                try {
+                  this.state.socket.onmessage = null
+                  this.state.socket.onopen = null
+                  this.state.socket.onclose = null
+                  this.state.socket.onerror = null
+                  this.state.socket.close()
+                  this.setState({ isConnected: false })
+                } catch (e) {
+                  console.error('Error closing socket on hide:', e)
+                }
+              }
+            } else if (document.visibilityState === 'visible') {
               console.log('Page visible, reconnecting...')
-              this.simpleReconnect()
+              // Always reconnect when returning, don't check staleness
+              this.forceReconnect()
             }
           }
           document.addEventListener('visibilitychange', this.handleVisibilityChange)
 
-          // pageshow for bfcache restoration
+          // pageshow for bfcache restoration - always reconnect
           this.handlePageShow = (event) => {
             if (event.persisted) {
-              console.log('Page restored from bfcache, reconnecting...')
-              this.simpleReconnect()
+              console.log('Page restored from bfcache, force reconnecting...')
+              this.forceReconnect()
             }
           }
           window.addEventListener('pageshow', this.handlePageShow)
@@ -504,6 +521,33 @@
           }
 
           console.log('Performing simple reconnect...')
+
+          // Close old socket
+          try {
+            if (this.state.socket) {
+              this.state.socket.onmessage = null
+              this.state.socket.onopen = null
+              this.state.socket.onclose = null
+              this.state.socket.onerror = null
+              this.state.socket.close()
+            }
+          } catch (e) {
+            console.error('Error closing socket:', e)
+          }
+
+          // Create new socket
+          try {
+            const newSocket = new WebSocket(this.state.relay)
+            this.setupSocketHandlers(newSocket)
+            this.setState({ socket: newSocket, isConnected: false })
+          } catch (e) {
+            console.error('Error creating socket:', e)
+          }
+        }
+
+        // Force reconnect - always reconnect without checking staleness
+        forceReconnect = () => {
+          console.log('Force reconnecting...')
 
           // Close old socket
           try {
