@@ -76,73 +76,107 @@
         font-weight: 900;
         color: white;
         text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+        position: relative;
+        z-index: 0;
       }
 
+      /* GPU-accelerated shimmer using transform + opacity */
       @keyframes shimmer {
-        0% {
-          transform: scale(1);
-          box-shadow: 0 0 0 rgba(255, 255, 255, 0);
-        }
-        50% {
-          transform: scale(1.15);
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
-        }
-        100% {
-          transform: scale(1);
-          box-shadow: 0 0 0 rgba(255, 255, 255, 0);
-        }
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes shimmer-glow {
+        0% { opacity: 0; transform: scale(0.8); }
+        50% { opacity: 0.6; transform: scale(1.1); }
+        100% { opacity: 0; transform: scale(0.8); }
       }
 
       .bubble.updated {
         animation: shimmer 0.8s ease-out;
       }
 
+      .bubble.updated::before {
+        content: '';
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        filter: blur(8px);
+        animation: shimmer-glow 0.8s ease-out;
+        z-index: -1;
+        pointer-events: none;
+        will-change: transform, opacity;
+      }
+
+      /* Current hour - static border, animated glow via pseudo-element */
       .bubble.current-hour {
         border: 3px solid #36A2EB;
-        box-shadow: 0 0 15px rgba(54, 162, 235, 0.6);
       }
 
-      @keyframes pulse {
-        0%, 100% {
-          box-shadow: 0 0 15px rgba(54, 162, 235, 0.6);
-        }
-        50% {
-          box-shadow: 0 0 25px rgba(54, 162, 235, 0.9);
-        }
+      .bubble.current-hour::after {
+        content: '';
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        background: rgba(54, 162, 235, 0.5);
+        filter: blur(10px);
+        z-index: -1;
+        pointer-events: none;
+        animation: pulse-glow 2s ease-in-out infinite;
+        will-change: transform, opacity;
       }
 
-      .bubble.current-hour {
-        animation: pulse 2s ease-in-out infinite;
+      @keyframes pulse-glow {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 0.9; transform: scale(1.15); }
       }
 
-      @keyframes targetGlow {
-        0%, 100% {
-          box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-        }
-        50% {
-          box-shadow: 0 0 30px rgba(255, 215, 0, 0.9);
-        }
-      }
-
+      /* Target glow - gold pseudo-element */
       .bubble.next-target {
-        animation: targetGlow 2.5s ease-in-out infinite;
         border: 2px solid gold;
       }
 
-      @keyframes silverGlow {
-        0%, 100% {
-          box-shadow: 0 0 25px rgba(255, 255, 255, 0.8),
-                      0 0 40px rgba(192, 192, 192, 0.5);
-        }
-        50% {
-          box-shadow: 0 0 35px rgba(255, 255, 255, 1),
-                      0 0 50px rgba(220, 220, 220, 0.8);
-        }
+      .bubble.next-target::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        background: rgba(255, 215, 0, 0.5);
+        filter: blur(12px);
+        z-index: -1;
+        pointer-events: none;
+        animation: target-glow 2.5s ease-in-out infinite;
+        will-change: transform, opacity;
       }
 
+      @keyframes target-glow {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 0.9; transform: scale(1.12); }
+      }
+
+      /* Silver glow - white/silver pseudo-element */
       .bubble.best-regular {
-        animation: silverGlow 2.5s ease-in-out infinite;
         border: 3px solid #E0E0E0;
+      }
+
+      .bubble.best-regular::after {
+        content: '';
+        position: absolute;
+        inset: -10px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.6);
+        filter: blur(15px);
+        z-index: -1;
+        pointer-events: none;
+        animation: silver-glow 2.5s ease-in-out infinite;
+        will-change: transform, opacity;
+      }
+
+      @keyframes silver-glow {
+        0%, 100% { opacity: 0.7; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.15); }
       }
 
       #status {
