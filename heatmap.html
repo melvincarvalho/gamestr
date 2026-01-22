@@ -100,10 +100,9 @@
       .bubble.updated::before {
         content: '';
         position: absolute;
-        inset: -8px;
+        inset: -12px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
-        filter: blur(8px);
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, transparent 70%);
         animation: shimmer-glow 0.8s ease-out;
         z-index: -1;
         pointer-events: none;
@@ -118,10 +117,9 @@
       .bubble.current-hour::after {
         content: '';
         position: absolute;
-        inset: -6px;
+        inset: -10px;
         border-radius: 50%;
-        background: rgba(54, 162, 235, 0.5);
-        filter: blur(10px);
+        background: radial-gradient(circle, rgba(54, 162, 235, 0.6) 0%, transparent 70%);
         z-index: -1;
         pointer-events: none;
         animation: pulse-glow 2s ease-in-out infinite;
@@ -130,7 +128,7 @@
 
       @keyframes pulse-glow {
         0%, 100% { opacity: 0.6; transform: scale(1); }
-        50% { opacity: 0.9; transform: scale(1.15); }
+        50% { opacity: 1; transform: scale(1.2); }
       }
 
       /* Target glow - gold pseudo-element */
@@ -141,10 +139,9 @@
       .bubble.next-target::after {
         content: '';
         position: absolute;
-        inset: -8px;
+        inset: -12px;
         border-radius: 50%;
-        background: rgba(255, 215, 0, 0.5);
-        filter: blur(12px);
+        background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, transparent 70%);
         z-index: -1;
         pointer-events: none;
         animation: target-glow 2.5s ease-in-out infinite;
@@ -153,7 +150,7 @@
 
       @keyframes target-glow {
         0%, 100% { opacity: 0.6; transform: scale(1); }
-        50% { opacity: 0.9; transform: scale(1.12); }
+        50% { opacity: 1; transform: scale(1.15); }
       }
 
       /* Silver glow - white/silver pseudo-element */
@@ -164,10 +161,9 @@
       .bubble.best-regular::after {
         content: '';
         position: absolute;
-        inset: -10px;
+        inset: -14px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.6);
-        filter: blur(15px);
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.7) 0%, transparent 70%);
         z-index: -1;
         pointer-events: none;
         animation: silver-glow 2.5s ease-in-out infinite;
@@ -176,7 +172,7 @@
 
       @keyframes silver-glow {
         0%, 100% { opacity: 0.7; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.15); }
+        50% { opacity: 1; transform: scale(1.2); }
       }
 
       #status {
