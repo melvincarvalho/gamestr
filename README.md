@@ -2,10 +2,12 @@
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://gamestr.vercel.app/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Nostr Protocol](https://img.shields.io/badge/protocol-nostr-purple.svg)](https://nostr.com/)
-[![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?logo=javascript&logoColor=%23F7DF1E)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+![License](https://img.shields.io/github/license/melvincarvalho/gamestr?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.0.1-blue?style=flat-square)
+![GitHub Stars](https://img.shields.io/github/stars/melvincarvalho/gamestr?style=flat-square)
+![Last Commit](https://img.shields.io/github/last-commit/melvincarvalho/gamestr?style=flat-square)
+![Nostr](https://img.shields.io/badge/protocol-nostr-purple?style=flat-square)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)
 
 **Transform your progress tracking into an engaging, gamified experience with real-time updates via the Nostr protocol**
 
