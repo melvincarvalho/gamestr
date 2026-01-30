@@ -925,6 +925,10 @@
 
         render(props, state) {
           const sortedKeys = Object.keys(state.content).sort((a, b) => {
+            // "work" always at top
+            if (a === 'work') return -1
+            if (b === 'work') return 1
+            // Then sort by points (highest first)
             return state.content[b] - state.content[a]
           })
 
