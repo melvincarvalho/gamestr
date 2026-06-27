@@ -103,6 +103,27 @@ vercel
 1. Connect GitHub repository
 2. Deploy with default settings
 
+## 🖥️ Terminal UI (TUI)
+
+Prefer the command line? `tui.js` is a zero-dependency terminal dashboard that
+mirrors the web app: it subscribes to the same relay/pubkey, draws a live
+progress bar per category, and plays a chime (with a 🎉 flash) whenever a
+category levels up.
+
+```bash
+node tui.js                 # live, tracks the default pubkey/relay
+node tui.js --demo          # offline showcase: scripted events crossing a level
+node tui.js --pubkey <hex> --relay wss://your-relay
+npm run tui                 # same as: node tui.js
+```
+
+Options: `--relay <url>`, `--pubkey <hex>`, `--sound <file>` (level-up sound,
+defaults to `audio/Confirmation.ogg`; `.mp3` plays via `ffplay`, others via
+`pw-play`), `--no-sound`. Keys: `q` quit · `m` mute · `r` redraw.
+
+Requires Node ≥ 22 (uses the built-in global `WebSocket`) and, for sound, a
+PipeWire/PulseAudio player (`pw-play`, or `ffplay` for mp3).
+
 ## 📖 Documentation
 
 ### Architecture
