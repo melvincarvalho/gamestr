@@ -74,7 +74,7 @@ const A = {
 }
 const fg = (n) => ESC + '38;5;' + n + 'm'
 // stable color per category name
-const PALETTE = [39, 208, 47, 201, 220, 51, 198, 154, 105, 214, 45, 213]
+const PALETTE = [208, 220, 39, 47, 201, 51, 198, 154, 105, 214, 45, 213]
 function colorFor(name) {
   let h = 0
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0

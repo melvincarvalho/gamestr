@@ -34,13 +34,6 @@ Gamestr is a modern web application that visualizes progress data as an interact
 - **🔄 Auto-reconnection** - Automatic WebSocket reconnection for reliability
 - **⚡ Zero Dependencies** - Lightweight vanilla JavaScript implementation
 
-## 📸 Screenshots
-
-<div align="center">
-  <img src="https://via.placeholder.com/800x400/4CAF50/FFFFFF?text=Gamestr+Dashboard" alt="Gamestr Dashboard" width="100%">
-  <p><i>Real-time progress dashboard with level progression and achievements</i></p>
-</div>
-
 ## 🛠️ Technology Stack
 
 - **Frontend**: Vanilla JavaScript with ES6+ modules
