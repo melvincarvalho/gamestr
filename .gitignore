@@ -128,3 +128,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# the agent plugin is a separate experiment, not part of gamestr
+agent/
+agent.did.json

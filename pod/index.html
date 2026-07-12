@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎮 gamestr — hourly breakdown</title>
+<style>
+  :root {
+    --page:      #f9f9f7;
+    --surface:   #fcfcfb;
+    --ink:       #0b0b0b;
+    --ink-2:     #52514e;
+    --muted:     #898781;
+    --track:     #e1e0d9;
+    --border:    rgba(11,11,11,0.10);
+    --s1: #2a78d6; --s2: #1baf7a; --s3: #eda100; --s4: #008300;
+    --s5: #4a3aa7; --s6: #e34948; --s7: #e87ba4; --s8: #eb6834;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page:      #0d0d0d;
+      --surface:   #1a1a19;
+      --ink:       #ffffff;
+      --ink-2:     #c3c2b7;
+      --muted:     #898781;
+      --track:     #2c2c2a;
+      --border:    rgba(255,255,255,0.10);
+      --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300;
+      --s5: #9085e9; --s6: #e66767; --s7: #d55181; --s8: #d95926;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; justify-content: center;
+    padding: 24px 12px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    width: 100%; max-width: 720px;
+  }
+  header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  h1 { font-size: 16px; font-weight: 650; }
+  #date { color: var(--ink-2); }
+  .spacer { flex: 1; }
+  nav { display: flex; gap: 6px; }
+  button {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--ink-2); font: inherit; font-size: 13px;
+    padding: 2px 10px; cursor: pointer;
+  }
+  button:hover { color: var(--ink); border-color: var(--muted); }
+  button:disabled { opacity: .35; cursor: default; }
+  button.on { color: var(--ink); border-color: var(--muted); }
+
+  #stats { display: flex; gap: 28px; margin: 18px 0 6px; }
+  .stat .v { font-size: 26px; font-weight: 650; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+
+  #legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 16px; color: var(--ink-2); font-size: 13px; }
+  #legend .chip::before {
+    content: ''; display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px; margin-right: 6px; background: var(--c);
+  }
+  #legend .chip b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  #rows { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 12px; align-items: center; }
+  .hh { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .hh.active { color: var(--ink); font-weight: 600; }
+  .bar { display: flex; gap: 2px; height: 14px; background: var(--track); border-radius: 4px; overflow: hidden; }
+  .bar .seg { background: var(--c); }
+  .bar .seg:last-child { border-radius: 0 4px 4px 0; }
+  .tot { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
+  .tot.active { color: var(--ink); font-weight: 600; }
+
+  #tip {
+    position: fixed; pointer-events: none; display: none; z-index: 10;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+    padding: 8px 10px; font-size: 12.5px; color: var(--ink-2);
+  }
+  #tip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  #tip .chip::before {
+    content: ''; display: inline-block; width: 8px; height: 8px;
+    border-radius: 2px; margin-right: 5px; background: var(--c);
+  }
+
+  #flash { margin-top: 14px; font-weight: 650; color: var(--s3); display: none; }
+  footer { margin-top: 16px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+  #empty { color: var(--muted); margin: 24px 0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <header>
+    <h1>🎮 gamestr — hourly breakdown</h1>
+    <span id="date"></span>
+    <span class="spacer"></span>
+    <nav>
+      <button id="prev" title="previous day (←)">‹</button>
+      <button id="today">today</button>
+      <button id="next" title="next day (→)">›</button>
+      <button id="trim" title="trim to active hours">trim</button>
+    </nav>
+  </header>
+
+  <div id="stats"></div>
+  <div id="legend"></div>
+  <div id="rows"></div>
+  <p id="empty" hidden>no points recorded this day</p>
+  <p id="flash"></p>
+
+  <footer>
+    <span id="mode"></span>
+    <span id="updated"></span>
+    <span>· [←/→] day</span>
+  </footer>
+</div>
+<div id="tip"></div>
+
+<script>
+const SLOTS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8']
+// fixed lead order like the CLI: work then chores; later categories take the
+// next free slot in first-seen order and keep it for the session
+const slotOf = new Map([['work', 0], ['chores', 1]])
+const colorFor = (name) => {
+  if (!slotOf.has(name)) slotOf.set(name, slotOf.size)
+  return `var(${SLOTS[slotOf.get(name) % SLOTS.length]})`
+}
+
+const fmt = (n) => n.toLocaleString('en-US')
+const MILESTONE = 10000
+
+const utcDay = (d) => d.toISOString().slice(0, 10).replace(/-/g, '')
+const dayShift = (day, delta) => {
+  const d = new Date(Date.UTC(+day.slice(0,4), +day.slice(4,6)-1, +day.slice(6,8)))
+  return utcDay(new Date(d.getTime() + delta * 86400000))
+}
+// data is UTC-bucketed; labels show local wall-clock like the CLI
+const hourLabel = (day, h) =>
+  String(new Date(Date.UTC(+day.slice(0,4), +day.slice(4,6)-1, +day.slice(6,8), h)).getHours()).padStart(2, '0')
+
+const urlDay = new URLSearchParams(location.search).get('day')
+let curDay = /^\d{8}$/.test(urlDay) ? urlDay : utcDay(new Date())
+let showAll = true
+let prevMilestone = null
+let flashUntil = 0
+
+const $ = (id) => document.getElementById(id)
+
+// Preferred: the gamestr plugin's one-shot day aggregation. Falls back to
+// fetching the 24 per-hour files (works without the plugin, e.g. serve.js).
+let dayEndpoint = true
+async function loadDay(day) {
+  if (dayEndpoint) {
+    try {
+      const r = await fetch(`/gamestr/day/${day}.json`, { cache: 'no-store' })
+      if (r.ok) return (await r.json()).hours
+    } catch { /* fall through */ }
+    dayEndpoint = false
+  }
+  return Promise.all([...Array(24)].map(async (_, h) => {
+    const hh = String(h).padStart(2, '0')
+    let cats = {}
+    try {
+      const r = await fetch(`hour/${day}${hh}.json`, { cache: 'no-store' })
+      if (r.ok) cats = await r.json()
+    } catch { /* no data this hour */ }
+    return { hour: h, cats: (cats && typeof cats === 'object') ? cats : {} }
+  }))
+}
+
+async function tick() {
+  const day = curDay
+  let hours
+  try {
+    hours = await loadDay(day)
+  } catch { $('updated').textContent = '· fetch failed'; return }
+  if (day !== curDay) return  // user navigated while fetching
+
+  const totals = hours.map(x => Object.values(x.cats).reduce((s, v) => s + (parseInt(v, 10) || 0), 0))
+  const dayTotal = totals.reduce((s, v) => s + v, 0)
+  const peakHour = totals.indexOf(Math.max(...totals))
+  const peak = totals[peakHour]
+  const activeCount = totals.filter(v => v > 0).length
+
+  const catTotals = {}
+  for (const x of hours)
+    for (const [k, v] of Object.entries(x.cats)) catTotals[k] = (catTotals[k] || 0) + (parseInt(v, 10) || 0)
+  const rank = (k) => k === 'work' ? 0 : k === 'chores' ? 1 : 2
+  const catOrder = Object.keys(catTotals).sort((a, b) => (rank(a) - rank(b)) || (catTotals[b] - catTotals[a]))
+
+  $('date').textContent = `${day.slice(0,4)}-${day.slice(4,6)}-${day.slice(6,8)} (local)`
+  $('next').disabled = day >= utcDay(new Date())
+  $('empty').hidden = dayTotal > 0
+
+  $('stats').innerHTML = dayTotal === 0 ? '' : `
+    <div class="stat"><div class="v">${fmt(dayTotal)}</div><div class="k">total</div></div>
+    <div class="stat"><div class="v">${fmt(peak)}</div><div class="k">peak @ ${hourLabel(day, peakHour)}h</div></div>
+    <div class="stat"><div class="v">${activeCount}</div><div class="k">active hour${activeCount === 1 ? '' : 's'}</div></div>`
+
+  $('legend').innerHTML = catOrder.map(k =>
+    `<span class="chip" style="--c:${colorFor(k)}">${k} <b>${fmt(catTotals[k])}</b></span>`).join('')
+
+  let lo = 0, hi = 23
+  if (!showAll && dayTotal > 0) {
+    lo = totals.findIndex(v => v > 0)
+    hi = 23 - [...totals].reverse().findIndex(v => v > 0)
+  }
+  let rows = ''
+  for (let h = lo; h <= hi; h++) {
+    const x = hours[h], t = totals[h]
+    const on = t > 0 ? ' active' : ''
+    const segs = catOrder.map(k => {
+      const v = parseInt(x.cats[k], 10) || 0
+      if (!v || !peak) return ''
+      return `<div class="seg" style="--c:${colorFor(k)};width:${(v / peak * 100).toFixed(2)}%"></div>`
+    }).join('')
+    rows += `<div class="hh${on}">${hourLabel(day, h)}</div>` +
+            `<div class="bar" data-h="${h}">${segs}</div>` +
+            `<div class="tot${on}">${t ? fmt(t) : '·'}</div>`
+  }
+  $('rows').innerHTML = rows
+  $('rows').dataset.day = day
+  window._hours = hours  // for the tooltip
+
+  // milestone flash: only on a genuine upward crossing, never on the first read
+  const ms = Math.floor(dayTotal / MILESTONE)
+  if (prevMilestone !== null && day === utcDay(new Date()) && ms > prevMilestone) {
+    $('flash').textContent = `🎉 ${fmt(ms * MILESTONE)} points!`
+    $('flash').style.display = 'block'
+    flashUntil = Date.now() + 6000
+  }
+  prevMilestone = day === utcDay(new Date()) ? ms : null
+  if (Date.now() > flashUntil) $('flash').style.display = 'none'
+
+  $('updated').textContent = '· updated ' + new Date().toLocaleTimeString()
+}
+
+// --- tooltip ----------------------------------------------------------------
+const tip = $('tip')
+$('rows').addEventListener('mousemove', (e) => {
+  const bar = e.target.closest('.bar')
+  if (!bar || !window._hours) { tip.style.display = 'none'; return }
+  const h = +bar.dataset.h
+  const cats = window._hours[h].cats
+  const lines = Object.entries(cats)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `<div class="chip" style="--c:${colorFor(k)}">${k} <b>${fmt(parseInt(v, 10) || 0)}</b></div>`)
+  const total = Object.values(cats).reduce((s, v) => s + (parseInt(v, 10) || 0), 0)
+  tip.innerHTML = `<div><b>${hourLabel($('rows').dataset.day, h)}:00</b> — ${total ? fmt(total) : 'no points'}</div>` + lines.join('')
+  tip.style.display = 'block'
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px'
+  tip.style.top = (e.clientY + 14) + 'px'
+})
+$('rows').addEventListener('mouseleave', () => { tip.style.display = 'none' })
+
+// --- nav ----------------------------------------------------------------------
+const go = (day) => {
+  curDay = day; prevMilestone = null
+  history.replaceState(null, '', day === utcDay(new Date()) ? location.pathname : '?day=' + day)
+  tick()
+}
+$('prev').onclick = () => go(dayShift(curDay, -1))
+$('next').onclick = () => { if (curDay < utcDay(new Date())) go(dayShift(curDay, 1)) }
+$('today').onclick = () => go(utcDay(new Date()))
+$('trim').onclick = () => { showAll = !showAll; $('trim').classList.toggle('on', !showAll); tick() }
+addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') $('prev').onclick()
+  if (e.key === 'ArrowRight') $('next').onclick()
+})
+
+// --- realtime ---------------------------------------------------------------
+// Solid solid-0.1 notifications: sub the hour/ container, refetch on pub.
+// Falls back to 2s polling when the websocket is unavailable (e.g. serve.js).
+let live = false
+let pollMs = 2000
+const HOUR_CONTAINER = new URL('hour/', location.href).href
+
+function setLive(v, label) {
+  live = v
+  pollMs = v ? 30000 : 2000   // ws drives updates; slow poll is just a safety net
+  $('mode').textContent = v ? '● live' + (label ? ' (' + label + ')' : '') : '○ polling every 2s'
+}
+
+let refetchTimer = null
+const refetchSoon = () => {   // debounce bursts of updates
+  clearTimeout(refetchTimer)
+  refetchTimer = setTimeout(tick, 150)
+}
+
+// Preferred: the gamestr plugin's own stream (pushes on every bump).
+// Fallback: solid-0.1 notifications (fires on LDP PUTs). Alternate between
+// them on failure so whichever the server offers ends up connected.
+let wsFails = 0
+function connectRealtime(preferStream = true) {
+  let ws
+  const path = preferStream ? '/gamestr/stream' : '/.notifications'
+  try { ws = new WebSocket(`ws://${location.host}${path}`) } catch { return }
+  let everOpen = false
+  ws.onopen = () => {
+    everOpen = true
+    wsFails = 0
+    if (!preferStream) ws.send('sub ' + HOUR_CONTAINER)
+  }
+  ws.onmessage = (e) => {
+    if (preferStream) {
+      let msg = {}
+      try { msg = JSON.parse(e.data) } catch { return }
+      if (msg.type === 'hello') setLive(true, 'stream')
+      else if (msg.type === 'update' && msg.day === curDay && !document.hidden) refetchSoon()
+    } else {
+      if (e.data.startsWith('ack ')) setLive(true, 'solid')
+      else if (e.data.startsWith('pub ') && !document.hidden) refetchSoon()
+    }
+  }
+  let gone = false
+  ws.onclose = ws.onerror = () => {   // both fire on a failed connect
+    if (gone) return
+    gone = true
+    setLive(false)
+    // an endpoint that never opened is likely absent — try the other one,
+    // backing off as failures accumulate; one that dropped after connecting
+    // is worth retrying itself
+    wsFails++
+    setTimeout(() => connectRealtime(everOpen ? preferStream : !preferStream),
+      everOpen ? 15000 : Math.min(15000, 1000 * wsFails))
+  }
+}
+
+setLive(false)
+tick()
+connectRealtime()
+const poll = () => { if (!document.hidden) tick(); setTimeout(poll, pollMs) }
+setTimeout(poll, pollMs)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick() })
+</script>
+</body>
+</html>
