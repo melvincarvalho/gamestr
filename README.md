@@ -11,7 +11,7 @@
 
 **Transform your progress tracking into an engaging, gamified experience with real-time updates via the Nostr protocol**
 
-[Live Demo](https://gamestr.vercel.app/) • [Features](#features) • [Getting Started](#getting-started) • [Documentation](#documentation)
+[Live Demo](https://gamestr.vercel.app/) • [Features](#features) • [Getting Started](#getting-started) • [Documentation](#documentation) • [⛓️ Run it decentralized](FORGE.md)
 
 </div>
 
