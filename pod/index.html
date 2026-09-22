@@ -123,9 +123,13 @@ button { font: inherit; color: inherit; }
   box-shadow: 0 0 0 2px rgba(255,255,255,.06), 0 0 14px color-mix(in srgb, var(--q) 45%, transparent);
 }
 .flash {
-  display: none; margin-top: .9rem; width: fit-content;
+  /* floating toast at the bottom: never shifts the page layout */
+  display: none; position: fixed; left: 0; right: 0; bottom: 1.5rem; z-index: 50;
+  margin: 0 auto; width: fit-content;
   font: 600 .95rem var(--sans); color: var(--amber);
-  border: 1px solid rgba(245,176,76,.4); background: rgba(245,176,76,.08);
+  border: 1px solid rgba(245,176,76,.4);
+  background: linear-gradient(rgba(245,176,76,.1), rgba(245,176,76,.1)), rgba(7,11,10,.92);
+  backdrop-filter: blur(10px);
   border-radius: 12px; padding: .55rem 1rem;
   box-shadow: 0 0 24px rgba(245,176,76,.15);
   animation: rise .4s cubic-bezier(.2,.8,.2,1) both, pulse 1.4s ease-in-out 3;
@@ -210,6 +214,7 @@ footer .sp { flex: 1; }
 </head>
 <body>
 <div class="backdrop"></div>
+<div class="flash" id="flash"></div>
 
 <header class="topbar">
   <span class="brand">
@@ -233,7 +238,6 @@ footer .sp { flex: 1; }
     <div class="eyebrow" id="date"></div>
     <div class="score"><span id="score">0</span><small>pts</small><span class="clock" id="clock"></span></div>
     <div class="subline" id="subline">loading…</div>
-    <div class="flash" id="flash"></div>
   </section>
   <section class="stats" id="stats"></section>
   </div>
