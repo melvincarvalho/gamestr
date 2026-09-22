@@ -115,6 +115,13 @@ button { font: inherit; color: inherit; }
 .score { font-size: clamp(3rem, 9vw, 5rem); font-weight: 700; letter-spacing: -.04em; line-height: 1.02; margin: .5rem 0 .2rem; font-variant-numeric: tabular-nums; }
 .score small { font-size: .35em; color: var(--mut); font-weight: 500; letter-spacing: 0; margin-left: .5rem; }
 .subline { color: var(--mut); font: .9rem var(--mono); }
+/* minute-of-the-hour pie, filled in the quarter colour */
+.clock {
+  display: inline-block; width: .3em; height: .3em; margin-left: .35em; border-radius: 50%;
+  vertical-align: .08em;
+  background: conic-gradient(color-mix(in srgb, var(--q) 70%, white) calc(var(--p, 0) * 1turn), rgba(255,255,255,.09) 0);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.06), 0 0 14px color-mix(in srgb, var(--q) 45%, transparent);
+}
 .flash {
   display: none; margin-top: .9rem; width: fit-content;
   font: 600 .95rem var(--sans); color: var(--amber);
@@ -224,7 +231,7 @@ footer .sp { flex: 1; }
   <div class="top">
   <section class="hero">
     <div class="eyebrow" id="date"></div>
-    <div class="score"><span id="score">0</span><small>pts</small></div>
+    <div class="score"><span id="score">0</span><small>pts</small><span class="clock" id="clock"></span></div>
     <div class="subline" id="subline">loading…</div>
     <div class="flash" id="flash"></div>
   </section>
@@ -489,8 +496,13 @@ function connectRealtime(preferStream = true) {
   }
 }
 
-// quarter of the (local) hour → background tint
-const setQuarter = () => { document.documentElement.dataset.q = Math.floor(new Date().getMinutes() / 15) }
+// quarter of the (local) hour → background tint; minute → clock pie
+const setQuarter = () => {
+  const d = new Date(), m = d.getMinutes() + d.getSeconds() / 60
+  document.documentElement.dataset.q = Math.floor(m / 15)
+  $('clock').style.setProperty('--p', (m / 60).toFixed(4))
+  $('clock').title = `:${String(d.getMinutes()).padStart(2, '0')} — ${60 - d.getMinutes()} min left in the hour`
+}
 setQuarter()
 setInterval(setQuarter, 5000)
 
