@@ -36,13 +36,19 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
-.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: color-mix(in srgb, var(--q) 14%, var(--bg)); }
+/* quarter-of-the-hour tint: cool → warm as the hour runs out (set by JS) */
+@property --q { syntax: '<color>'; inherits: true; initial-value: #0f766e; }
+:root { --q: #0f766e; transition: --q 3s ease; }
+:root[data-q="1"] { --q: #1d4ed8; }
+:root[data-q="2"] { --q: #6d28d9; }
+:root[data-q="3"] { --q: #c2410c; }
 .backdrop::before {
   content: ""; position: absolute; inset: 0;
   background:
-    radial-gradient(900px 480px at 88% -10%, rgba(15,118,110,.30), transparent 60%),
-    radial-gradient(700px 460px at -10% 24%, rgba(45,212,191,.07), transparent 55%),
-    radial-gradient(900px 700px at 50% 130%, rgba(15,118,110,.12), transparent 60%);
+    radial-gradient(900px 480px at 88% -10%, color-mix(in srgb, var(--q) 50%, transparent), transparent 65%),
+    radial-gradient(700px 460px at -10% 24%, color-mix(in srgb, var(--q) 22%, transparent), transparent 60%),
+    radial-gradient(900px 700px at 50% 130%, color-mix(in srgb, var(--q) 30%, transparent), transparent 65%);
 }
 .backdrop::after {
   content: ""; position: absolute; inset: 0; opacity: .5;
@@ -482,6 +488,11 @@ function connectRealtime(preferStream = true) {
       everOpen ? 15000 : Math.min(15000, 1000 * wsFails))
   }
 }
+
+// quarter of the (local) hour → background tint
+const setQuarter = () => { document.documentElement.dataset.q = Math.floor(new Date().getMinutes() / 15) }
+setQuarter()
+setInterval(setQuarter, 5000)
 
 setLive(false)
 tick()
