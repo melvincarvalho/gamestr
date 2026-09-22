@@ -3,134 +3,245 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🎮 gamestr — hourly breakdown</title>
+<title>gamestr — hourly breakdown</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Crect x='7' y='14' width='18' height='4' rx='2' fill='%23fff'/%3E%3Crect x='7' y='21' width='11' height='4' rx='2' fill='%23fff' opacity='.7'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --page:      #f9f9f7;
-    --surface:   #fcfcfb;
-    --ink:       #0b0b0b;
-    --ink-2:     #52514e;
-    --muted:     #898781;
-    --track:     #e1e0d9;
-    --border:    rgba(11,11,11,0.10);
-    --s1: #2a78d6; --s2: #1baf7a; --s3: #eda100; --s4: #008300;
-    --s5: #4a3aa7; --s6: #e34948; --s7: #e87ba4; --s8: #eb6834;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --page:      #0d0d0d;
-      --surface:   #1a1a19;
-      --ink:       #ffffff;
-      --ink-2:     #c3c2b7;
-      --muted:     #898781;
-      --track:     #2c2c2a;
-      --border:    rgba(255,255,255,0.10);
-      --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300;
-      --s5: #9085e9; --s6: #e66767; --s7: #d55181; --s8: #d95926;
-    }
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body {
-    background: var(--page);
-    color: var(--ink);
-    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-    display: flex; justify-content: center;
-    padding: 24px 12px;
-  }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px 22px;
-    width: 100%; max-width: 720px;
-  }
-  header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  h1 { font-size: 16px; font-weight: 650; }
-  #date { color: var(--ink-2); }
-  .spacer { flex: 1; }
-  nav { display: flex; gap: 6px; }
-  button {
-    background: none; border: 1px solid var(--border); border-radius: 6px;
-    color: var(--ink-2); font: inherit; font-size: 13px;
-    padding: 2px 10px; cursor: pointer;
-  }
-  button:hover { color: var(--ink); border-color: var(--muted); }
-  button:disabled { opacity: .35; cursor: default; }
-  button.on { color: var(--ink); border-color: var(--muted); }
+:root {
+  color-scheme: dark;
+  --bg: #070b0a;
+  --panel: rgba(255,255,255,.028);
+  --panel2: rgba(255,255,255,.05);
+  --line: rgba(148,196,184,.12);
+  --line2: rgba(148,196,184,.22);
+  --text: #e7f0ed;
+  --mut: #8fa8a1;
+  --dim: #5c716c;
+  --ac: #2dd4bf;
+  --ac-deep: #0f766e;
+  --ac-glow: rgba(45,212,191,.16);
+  --amber: #f5b04c;
+  --red: #f4726b;
+  --track: rgba(148,196,184,.09);
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --r: 14px;
+}
+* { box-sizing: border-box; margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+.backdrop::before {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(900px 480px at 88% -10%, rgba(15,118,110,.30), transparent 60%),
+    radial-gradient(700px 460px at -10% 24%, rgba(45,212,191,.07), transparent 55%),
+    radial-gradient(900px 700px at 50% 130%, rgba(15,118,110,.12), transparent 60%);
+}
+.backdrop::after {
+  content: ""; position: absolute; inset: 0; opacity: .5;
+  background-image:
+    linear-gradient(rgba(148,196,184,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148,196,184,.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+::selection { background: rgba(45,212,191,.28); }
+code, .mono { font-family: var(--mono); font-size: .92em; }
+button { font: inherit; color: inherit; }
 
-  #stats { display: flex; gap: 28px; margin: 18px 0 6px; }
-  .stat .v { font-size: 26px; font-weight: 650; }
-  .stat .k { font-size: 12px; color: var(--muted); }
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+  padding: .7rem clamp(1rem, 4vw, 2.5rem);
+  background: rgba(7,11,10,.78); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1.02rem; letter-spacing: -.01em; }
+.brand .mark {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: linear-gradient(145deg, #14b8a6, #0f766e);
+  display: grid; place-items: center; box-shadow: 0 0 18px var(--ac-glow); flex: none;
+}
+.brand .sep { color: var(--dim); font-weight: 400; }
+.brand .sub { color: var(--ac); font-weight: 500; }
+.daynav { display: flex; align-items: center; gap: .35rem; margin-inline: auto; }
+.daynav .btn { width: 32px; height: 32px; display: grid; place-items: center; }
+.btn {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+  color: var(--mut); cursor: pointer; padding: .32rem .8rem; font: .8rem var(--mono);
+  transition: all .2s;
+}
+.btn:hover { color: var(--ac); border-color: var(--line2); }
+.btn:disabled { opacity: .3; cursor: default; }
+.btn.on { color: var(--ac); border-color: rgba(45,212,191,.4); background: rgba(45,212,191,.07); }
+.status { display: flex; align-items: center; gap: .5rem; font: .78rem var(--mono); color: var(--mut); }
+.pill {
+  display: inline-flex; align-items: center; gap: .4rem;
+  border: 1px solid var(--line); border-radius: 99px; padding: .28rem .75rem; background: var(--panel);
+}
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+.pill.live { border-color: rgba(45,212,191,.35); color: var(--ac); }
+.pill.live .dot { background: var(--ac); box-shadow: 0 0 8px var(--ac); animation: pulse 1.6s ease-in-out infinite; }
+.pill.poll .dot { background: var(--amber); }
+@keyframes pulse { 50% { opacity: .35; } }
 
-  #legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 16px; color: var(--ink-2); font-size: 13px; }
-  #legend .chip::before {
-    content: ''; display: inline-block; width: 10px; height: 10px;
-    border-radius: 2px; margin-right: 6px; background: var(--c);
-  }
-  #legend .chip b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* ---------- layout ---------- */
+.wrap { max-width: 60rem; margin: 0 auto; padding: clamp(1.2rem, 4vw, 2.4rem) clamp(1rem, 4vw, 2.5rem) 4rem; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes growX { from { transform: scaleX(0); } }
+.view > * { animation: rise .5s cubic-bezier(.2,.8,.2,1) both; }
+.view > *:nth-child(2) { animation-delay: .05s; } .view > *:nth-child(3) { animation-delay: .1s; }
+.view > *:nth-child(4) { animation-delay: .15s; } .view > *:nth-child(5) { animation-delay: .2s; }
 
-  #rows { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 12px; align-items: center; }
-  .hh { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
-  .hh.active { color: var(--ink); font-weight: 600; }
-  .bar { display: flex; gap: 2px; height: 14px; background: var(--track); border-radius: 4px; overflow: hidden; }
-  .bar .seg { background: var(--c); }
-  .bar .seg:last-child { border-radius: 0 4px 4px 0; }
-  .tot { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-2); }
-  .tot.active { color: var(--ink); font-weight: 600; }
+/* ---------- hero ---------- */
+.hero { padding: 1.2rem 0 1.6rem; }
+.eyebrow { font: .72rem var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--ac); display: flex; align-items: center; gap: .6rem; }
+.eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--ac-deep); }
+.score { font-size: clamp(3rem, 9vw, 5rem); font-weight: 700; letter-spacing: -.04em; line-height: 1.02; margin: .5rem 0 .2rem; font-variant-numeric: tabular-nums; }
+.score small { font-size: .35em; color: var(--mut); font-weight: 500; letter-spacing: 0; margin-left: .5rem; }
+.subline { color: var(--mut); font: .9rem var(--mono); }
+.flash {
+  display: none; margin-top: .9rem; width: fit-content;
+  font: 600 .95rem var(--sans); color: var(--amber);
+  border: 1px solid rgba(245,176,76,.4); background: rgba(245,176,76,.08);
+  border-radius: 12px; padding: .55rem 1rem;
+  box-shadow: 0 0 24px rgba(245,176,76,.15);
+  animation: rise .4s cubic-bezier(.2,.8,.2,1) both, pulse 1.4s ease-in-out 3;
+}
 
-  #tip {
-    position: fixed; pointer-events: none; display: none; z-index: 10;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.25);
-    padding: 8px 10px; font-size: 12.5px; color: var(--ink-2);
-  }
-  #tip b { color: var(--ink); font-variant-numeric: tabular-nums; }
-  #tip .chip::before {
-    content: ''; display: inline-block; width: 8px; height: 8px;
-    border-radius: 2px; margin-right: 5px; background: var(--c);
-  }
+/* ---------- stats ---------- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .8rem; margin: .6rem 0 1.8rem; }
+.stat {
+  position: relative; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: linear-gradient(160deg, var(--panel2), var(--panel));
+  padding: .9rem 1.05rem .85rem; transition: border-color .25s, transform .25s;
+}
+.stat:hover { border-color: var(--line2); transform: translateY(-2px); }
+.stat::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(45,212,191,.4), transparent); opacity: 0; transition: opacity .25s; }
+.stat:hover::after { opacity: 1; }
+.stat .k { font: .66rem var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.stat .v { font: 600 1.4rem/1.2 var(--sans); letter-spacing: -.02em; margin-top: .28rem; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: .8rem; color: var(--mut); font-weight: 500; margin-left: .3rem; }
+.stat .s { font: .73rem var(--mono); color: var(--mut); margin-top: .12rem; }
 
-  #flash { margin-top: 14px; font-weight: 650; color: var(--s3); display: none; }
-  footer { margin-top: 16px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
-  #empty { color: var(--muted); margin: 24px 0; }
+/* ---------- legend ---------- */
+.legend { display: flex; gap: .55rem; flex-wrap: wrap; margin: 0 0 1.1rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: .45rem;
+  font: .78rem var(--mono); color: var(--mut);
+  border: 1px solid var(--line); background: var(--panel);
+  padding: .3rem .65rem; border-radius: 9px;
+}
+.chip .dot { width: 9px; height: 9px; border-radius: 3px; background: var(--c); flex: none; }
+.chip b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip .pc { color: var(--dim); }
+
+/* ---------- chart ---------- */
+.rows { display: grid; grid-template-columns: 3.2rem 1fr 5.5rem; gap: 7px 14px; align-items: center; }
+.hh { color: var(--dim); font: .8rem var(--mono); font-variant-numeric: tabular-nums; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: .45rem; }
+.hh.active { color: var(--text); }
+.hh .ndot { display: none; width: 6px; height: 6px; border-radius: 50%; background: var(--ac); box-shadow: 0 0 8px var(--ac); animation: pulse 1.6s ease-in-out infinite; }
+.hh.now .ndot { display: inline-block; }
+.hh.now { color: var(--ac); }
+.bar {
+  position: relative; display: flex; gap: 2px; height: 17px;
+  background: var(--track); border-radius: 6px; overflow: hidden;
+  transition: box-shadow .2s;
+}
+.rows .bar:hover { box-shadow: 0 0 0 1px var(--line2), 0 0 16px rgba(45,212,191,.12); }
+.seg { background: var(--c); border-radius: 0; transform-origin: left; min-width: 2px; }
+.grow .seg { animation: growX .7s cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 0ms); }
+.tot { text-align: right; font: .8rem var(--mono); font-variant-numeric: tabular-nums; color: var(--dim); }
+.tot.active { color: var(--text); }
+.tot.peak { color: var(--ac); }
+
+/* ---------- tooltip ---------- */
+#tip {
+  position: fixed; pointer-events: none; display: none; z-index: 60;
+  background: rgba(10,16,15,.96); border: 1px solid var(--line2); border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.5);
+  padding: .55rem .7rem; font: .76rem var(--mono); color: var(--mut); min-width: 10rem;
+}
+#tip b { color: var(--text); font-variant-numeric: tabular-nums; }
+#tip .row { display: flex; align-items: center; gap: .4rem; margin-top: .18rem; }
+#tip .row .dot { width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; }
+#tip .row b { margin-left: auto; padding-left: 1rem; }
+
+.empty { color: var(--dim); font: .85rem var(--mono); padding: 2.2rem 0; text-align: center; }
+
+footer {
+  margin-top: 2.2rem; padding-top: 1.1rem; border-top: 1px solid var(--line);
+  display: flex; gap: 1.4rem; flex-wrap: wrap; align-items: baseline;
+  font: .74rem var(--mono); color: var(--dim);
+}
+footer .sp { flex: 1; }
+
+@media (max-width: 560px) {
+  .rows { grid-template-columns: 2.6rem 1fr 4.4rem; gap: 6px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+}
 </style>
 </head>
 <body>
-<div class="card">
-  <header>
-    <h1>🎮 gamestr — hourly breakdown</h1>
-    <span id="date"></span>
-    <span class="spacer"></span>
-    <nav>
-      <button id="prev" title="previous day (←)">‹</button>
-      <button id="today">today</button>
-      <button id="next" title="next day (→)">›</button>
-      <button id="trim" title="trim to active hours">trim</button>
-    </nav>
-  </header>
+<div class="backdrop"></div>
 
-  <div id="stats"></div>
-  <div id="legend"></div>
-  <div id="rows"></div>
-  <p id="empty" hidden>no points recorded this day</p>
-  <p id="flash"></p>
+<header class="topbar">
+  <span class="brand">
+    <span class="mark"><svg width="14" height="14" viewBox="0 0 18 18" fill="none"><path d="M4.5 6.5h9a3.5 3.5 0 0 1 3.4 4.4l-.6 2.2a2 2 0 0 1-3.4.8L11.6 12H6.4L5.1 13.9a2 2 0 0 1-3.4-.8l-.6-2.2A3.5 3.5 0 0 1 4.5 6.5Z" stroke="#fff" stroke-width="1.4"/><path d="M6 9.2v2M5 10.2h2" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/><circle cx="12.2" cy="9.4" r=".9" fill="#fff"/><circle cx="13.8" cy="11" r=".9" fill="#fff" opacity=".7"/></svg></span>
+    gamestr <span class="sep">·</span> <span class="sub">hourly breakdown</span>
+  </span>
+  <nav class="daynav">
+    <button class="btn" id="prev" title="previous day (←)">‹</button>
+    <button class="btn" id="today">today</button>
+    <button class="btn" id="next" title="next day (→)">›</button>
+  </nav>
+  <div class="status">
+    <button class="btn" id="trim" title="trim to active hours">trim</button>
+    <span class="pill poll" id="pill"><span class="dot"></span><span id="pilltxt">connecting</span></span>
+  </div>
+</header>
 
+<main class="wrap"><div class="view" id="view">
+  <section class="hero">
+    <div class="eyebrow" id="date"></div>
+    <div class="score"><span id="score">0</span><small>pts</small></div>
+    <div class="subline" id="subline">loading…</div>
+    <div class="flash" id="flash"></div>
+  </section>
+  <section class="stats" id="stats"></section>
+  <div class="legend" id="legend"></div>
+  <div class="rows" id="rows"></div>
+  <p class="empty" id="empty" hidden>no points recorded this day</p>
   <footer>
     <span id="mode"></span>
     <span id="updated"></span>
-    <span>· [←/→] day</span>
+    <span class="sp"></span>
+    <span>[←/→] day · hover bars for detail</span>
   </footer>
-</div>
+</div></main>
+
 <div id="tip"></div>
 
 <script>
-const SLOTS = ['--s1','--s2','--s3','--s4','--s5','--s6','--s7','--s8']
-// fixed lead order like the CLI: work then chores; later categories take the
-// next free slot in first-seen order and keep it for the session
+// 8-slot palette tinted for the dark theme; fixed lead order like the CLI:
+// work then chores; later categories take the next free slot in first-seen
+// order and keep it for the session.
+const SLOTS = ['#2dd4bf', '#f5b04c', '#7dd3fc', '#a78bfa', '#f472b6', '#4ade80', '#fb7185', '#94a3b8']
 const slotOf = new Map([['work', 0], ['chores', 1]])
 const colorFor = (name) => {
   if (!slotOf.has(name)) slotOf.set(name, slotOf.size)
-  return `var(${SLOTS[slotOf.get(name) % SLOTS.length]})`
+  return SLOTS[slotOf.get(name) % SLOTS.length]
 }
 
 const fmt = (n) => n.toLocaleString('en-US')
@@ -150,11 +261,12 @@ let curDay = /^\d{8}$/.test(urlDay) ? urlDay : utcDay(new Date())
 let showAll = true
 let prevMilestone = null
 let flashUntil = 0
+let lastTotal = null
 
 const $ = (id) => document.getElementById(id)
 
 // Preferred: the gamestr plugin's one-shot day aggregation. Falls back to
-// fetching the 24 per-hour files (works without the plugin, e.g. serve.js).
+// fetching the 24 per-hour files (works without the plugin, e.g. serve.mjs).
 let dayEndpoint = true
 async function loadDay(day) {
   if (dayEndpoint) {
@@ -173,6 +285,22 @@ async function loadDay(day) {
     } catch { /* no data this hour */ }
     return { hour: h, cats: (cats && typeof cats === 'object') ? cats : {} }
   }))
+}
+
+function countUp(node, target) {
+  if (lastTotal === null) { node.textContent = fmt(target); return }
+  const from = lastTotal, t0 = performance.now()
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / 700)
+    node.textContent = fmt(Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3))))
+    if (p < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+
+// skip DOM writes when nothing changed — rebuilding replays CSS animations
+function setHTML(node, html) {
+  if (node._html !== html) { node.innerHTML = html; node._html = html }
 }
 
 async function tick() {
@@ -194,18 +322,30 @@ async function tick() {
     for (const [k, v] of Object.entries(x.cats)) catTotals[k] = (catTotals[k] || 0) + (parseInt(v, 10) || 0)
   const rank = (k) => k === 'work' ? 0 : k === 'chores' ? 1 : 2
   const catOrder = Object.keys(catTotals).sort((a, b) => (rank(a) - rank(b)) || (catTotals[b] - catTotals[a]))
+  const topCat = catOrder.reduce((a, b) => (catTotals[b] > catTotals[a] ? b : a), catOrder[0])
 
-  $('date').textContent = `${day.slice(0,4)}-${day.slice(4,6)}-${day.slice(6,8)} (local)`
+  const isToday = day === utcDay(new Date())
+  const nowHour = new Date().getHours()
+  const dateStr = `${day.slice(0,4)}-${day.slice(4,6)}-${day.slice(6,8)}`
+  $('date').textContent = `${dateStr}${isToday ? ' · today' : ''} · local hours`
+  document.title = `gamestr — ${fmt(dayTotal)} pts`
   $('next').disabled = day >= utcDay(new Date())
   $('empty').hidden = dayTotal > 0
 
-  $('stats').innerHTML = dayTotal === 0 ? '' : `
-    <div class="stat"><div class="v">${fmt(dayTotal)}</div><div class="k">total</div></div>
-    <div class="stat"><div class="v">${fmt(peak)}</div><div class="k">peak @ ${hourLabel(day, peakHour)}h</div></div>
-    <div class="stat"><div class="v">${activeCount}</div><div class="k">active hour${activeCount === 1 ? '' : 's'}</div></div>`
+  countUp($('score'), dayTotal)
+  lastTotal = dayTotal
+  $('subline').textContent = dayTotal === 0
+    ? 'nothing logged yet'
+    : `${activeCount} active hour${activeCount === 1 ? '' : 's'} · pace ${fmt(Math.round(dayTotal / Math.max(1, activeCount)))} pts/hr`
 
-  $('legend').innerHTML = catOrder.map(k =>
-    `<span class="chip" style="--c:${colorFor(k)}">${k} <b>${fmt(catTotals[k])}</b></span>`).join('')
+  setHTML($('stats'), dayTotal === 0 ? '' : `
+    <div class="stat"><div class="k">peak hour</div><div class="v">${hourLabel(day, peakHour)}<small>:00</small></div><div class="s">${fmt(peak)} pts</div></div>
+    <div class="stat"><div class="k">active hours</div><div class="v">${activeCount}<small>/ 24</small></div><div class="s">${Math.round(activeCount / 24 * 100)}% of the day</div></div>
+    <div class="stat"><div class="k">top category</div><div class="v" style="color:${colorFor(topCat)}">${topCat}</div><div class="s">${fmt(catTotals[topCat])} pts · ${Math.round(catTotals[topCat] / dayTotal * 100)}%</div></div>
+    <div class="stat"><div class="k">off-peak</div><div class="v">${fmt(dayTotal - peak)}</div><div class="s">pts outside ${hourLabel(day, peakHour)}:00</div></div>`)
+
+  setHTML($('legend'), catOrder.map(k =>
+    `<span class="chip" style="--c:${colorFor(k)}"><span class="dot"></span>${k} <b>${fmt(catTotals[k])}</b><span class="pc">${Math.round(catTotals[k] / dayTotal * 100)}%</span></span>`).join(''))
 
   let lo = 0, hi = 23
   if (!showAll && dayTotal > 0) {
@@ -216,17 +356,22 @@ async function tick() {
   for (let h = lo; h <= hi; h++) {
     const x = hours[h], t = totals[h]
     const on = t > 0 ? ' active' : ''
+    const now = isToday && hourLabel(day, h) === String(nowHour).padStart(2, '0') ? ' now' : ''
     const segs = catOrder.map(k => {
       const v = parseInt(x.cats[k], 10) || 0
       if (!v || !peak) return ''
-      return `<div class="seg" style="--c:${colorFor(k)};width:${(v / peak * 100).toFixed(2)}%"></div>`
+      return `<div class="seg" style="--c:${colorFor(k)};--d:${(h - lo) * 28}ms;width:${(v / peak * 100).toFixed(2)}%"></div>`
     }).join('')
-    rows += `<div class="hh${on}">${hourLabel(day, h)}</div>` +
+    rows += `<div class="hh${on}${now}"><span class="ndot"></span>${hourLabel(day, h)}</div>` +
             `<div class="bar" data-h="${h}">${segs}</div>` +
-            `<div class="tot${on}">${t ? fmt(t) : '·'}</div>`
+            `<div class="tot${on}${t === peak && t > 0 ? ' peak' : ''}">${t ? fmt(t) : '·'}</div>`
   }
-  $('rows').innerHTML = rows
-  $('rows').dataset.day = day
+  // grow-in animation only when the day being shown changes (incl. first load);
+  // live updates patch in place so the bars don't collapse and regrow
+  const rowsEl = $('rows')
+  rowsEl.classList.toggle('grow', rowsEl.dataset.day !== day)
+  setHTML(rowsEl, rows)
+  rowsEl.dataset.day = day
   window._hours = hours  // for the tooltip
 
   // milestone flash: only on a genuine upward crossing, never on the first read
@@ -251,7 +396,7 @@ $('rows').addEventListener('mousemove', (e) => {
   const cats = window._hours[h].cats
   const lines = Object.entries(cats)
     .sort((a, b) => b[1] - a[1])
-    .map(([k, v]) => `<div class="chip" style="--c:${colorFor(k)}">${k} <b>${fmt(parseInt(v, 10) || 0)}</b></div>`)
+    .map(([k, v]) => `<div class="row" style="--c:${colorFor(k)}"><span class="dot"></span>${k} <b>${fmt(parseInt(v, 10) || 0)}</b></div>`)
   const total = Object.values(cats).reduce((s, v) => s + (parseInt(v, 10) || 0), 0)
   tip.innerHTML = `<div><b>${hourLabel($('rows').dataset.day, h)}:00</b> — ${total ? fmt(total) : 'no points'}</div>` + lines.join('')
   tip.style.display = 'block'
@@ -262,7 +407,7 @@ $('rows').addEventListener('mouseleave', () => { tip.style.display = 'none' })
 
 // --- nav ----------------------------------------------------------------------
 const go = (day) => {
-  curDay = day; prevMilestone = null
+  curDay = day; prevMilestone = null; lastTotal = null
   history.replaceState(null, '', day === utcDay(new Date()) ? location.pathname : '?day=' + day)
   tick()
 }
@@ -277,7 +422,7 @@ addEventListener('keydown', (e) => {
 
 // --- realtime ---------------------------------------------------------------
 // Solid solid-0.1 notifications: sub the hour/ container, refetch on pub.
-// Falls back to 2s polling when the websocket is unavailable (e.g. serve.js).
+// Falls back to 2s polling when the websocket is unavailable (e.g. serve.mjs).
 let live = false
 let pollMs = 2000
 const HOUR_CONTAINER = new URL('hour/', location.href).href
@@ -285,7 +430,10 @@ const HOUR_CONTAINER = new URL('hour/', location.href).href
 function setLive(v, label) {
   live = v
   pollMs = v ? 30000 : 2000   // ws drives updates; slow poll is just a safety net
-  $('mode').textContent = v ? '● live' + (label ? ' (' + label + ')' : '') : '○ polling every 2s'
+  const pill = $('pill'), txt = $('pilltxt')
+  pill.className = 'pill ' + (v ? 'live' : 'poll')
+  txt.textContent = v ? 'live' + (label ? ' · ' + label : '') : 'polling 2s'
+  $('mode').textContent = v ? '● realtime' + (label ? ' (' + label + ')' : '') : '○ polling every 2s'
 }
 
 let refetchTimer = null
