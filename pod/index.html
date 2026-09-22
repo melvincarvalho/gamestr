@@ -102,7 +102,8 @@ button { font: inherit; color: inherit; }
 .view > *:nth-child(4) { animation-delay: .15s; } .view > *:nth-child(5) { animation-delay: .2s; }
 
 /* ---------- hero ---------- */
-.hero { padding: 1.2rem 0 1.6rem; }
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem 1.5rem; flex-wrap: wrap; margin-bottom: 1.8rem; }
+.hero { padding: 1.2rem 0 0; }
 .eyebrow { font: .72rem var(--mono); letter-spacing: .22em; text-transform: uppercase; color: var(--ac); display: flex; align-items: center; gap: .6rem; }
 .eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--ac-deep); }
 .score { font-size: clamp(3rem, 9vw, 5rem); font-weight: 700; letter-spacing: -.04em; line-height: 1.02; margin: .5rem 0 .2rem; font-variant-numeric: tabular-nums; }
@@ -118,7 +119,8 @@ button { font: inherit; color: inherit; }
 }
 
 /* ---------- stats ---------- */
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .8rem; margin: .6rem 0 1.8rem; }
+.stats { display: flex; gap: .8rem; }
+.stats .stat { min-width: 9.5rem; }
 .stat {
   position: relative; overflow: hidden;
   border: 1px solid var(--line); border-radius: var(--r);
@@ -213,6 +215,7 @@ footer .sp { flex: 1; }
 </header>
 
 <main class="wrap"><div class="view" id="view">
+  <div class="top">
   <section class="hero">
     <div class="eyebrow" id="date"></div>
     <div class="score"><span id="score">0</span><small>pts</small></div>
@@ -220,6 +223,7 @@ footer .sp { flex: 1; }
     <div class="flash" id="flash"></div>
   </section>
   <section class="stats" id="stats"></section>
+  </div>
   <div class="legend" id="legend"></div>
   <div class="rows" id="rows"></div>
   <p class="empty" id="empty" hidden>no points recorded this day</p>
@@ -340,9 +344,7 @@ async function tick() {
 
   setHTML($('stats'), dayTotal === 0 ? '' : `
     <div class="stat"><div class="k">peak hour</div><div class="v">${hourLabel(day, peakHour)}<small>:00</small></div><div class="s">${fmt(peak)} pts</div></div>
-    <div class="stat"><div class="k">active hours</div><div class="v">${activeCount}<small>/ 24</small></div><div class="s">${Math.round(activeCount / 24 * 100)}% of the day</div></div>
-    <div class="stat"><div class="k">top category</div><div class="v" style="color:${colorFor(topCat)}">${topCat}</div><div class="s">${fmt(catTotals[topCat])} pts · ${Math.round(catTotals[topCat] / dayTotal * 100)}%</div></div>
-    <div class="stat"><div class="k">off-peak</div><div class="v">${fmt(dayTotal - peak)}</div><div class="s">pts outside ${hourLabel(day, peakHour)}:00</div></div>`)
+    <div class="stat"><div class="k">top category</div><div class="v" style="color:${colorFor(topCat)}">${topCat}</div><div class="s">${fmt(catTotals[topCat])} pts · ${Math.round(catTotals[topCat] / dayTotal * 100)}%</div></div>`)
 
   setHTML($('legend'), catOrder.map(k =>
     `<span class="chip" style="--c:${colorFor(k)}"><span class="dot"></span>${k} <b>${fmt(catTotals[k])}</b><span class="pc">${Math.round(catTotals[k] / dayTotal * 100)}%</span></span>`).join(''))
