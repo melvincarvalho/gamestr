@@ -468,7 +468,7 @@ let wsFails = 0
 function connectRealtime(preferStream = true) {
   let ws
   const path = preferStream ? '/gamestr/stream' : '/.notifications'
-  try { ws = new WebSocket(`ws://${location.host}${path}`) } catch { return }
+  try { ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}${path}`) } catch { return }
   let everOpen = false
   ws.onopen = () => {
     everOpen = true
